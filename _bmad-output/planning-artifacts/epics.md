@@ -213,9 +213,28 @@ So that I get answers that require real-time data or computation.
 
 **Given** the tool loop reaches 5 iterations without a final text response
 **When** the limit is hit
-**Then** an AG-UI error event is emitted with a message inviting the user to continue (e.g., "Le traitement nécessite plus d'étapes. Dites « continue » pour poursuivre.")
+**Then** an AG-UI error event is emitted with a user-facing message (e.g., "J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique.")
 **And** all intermediate messages (tool calls + results) are persisted in the session
-**And** a subsequent "continue" message from the user resumes with full context
+
+### Story 2.4: Reprise de conversation après limite d'itérations (future)
+
+As an end client,
+I want to send "continue" after the assistant hit the tool iteration limit,
+So that the assistant can resume its work with full context of prior tool calls.
+
+**Acceptance Criteria:**
+
+**Given** a previous request hit the 5-iteration limit on a session
+**When** the user sends a follow-up message with the same `threadId`
+**Then** the LLM receives the full detailed context of prior tool calls and results (not just a Q/A summary)
+**And** this works regardless of the `CONTEXT_FULL_TURNS` configuration mode (lean, hybrid, full)
+
+**Design note:** In lean mode (default), `BuildContextMessages` only includes detailed messages for the current turn and summarizes older turns. A turn that hit max-iterations must be force-included in detail for the resume mechanism to work. This requires either a `needs-continuation` flag on the turn or automatic context mode elevation.
+
+**Dependencies:** Story 2.1 (sentinel error and persistence)
+**Status:** not-started
+
+---
 
 ### Story 2.2: Émission des événements tool call AG-UI
 
