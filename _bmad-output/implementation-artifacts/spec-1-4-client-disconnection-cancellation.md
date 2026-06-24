@@ -26,12 +26,12 @@ context:
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| Normal request | Client stays connected | Full event sequence emitted | N/A |
-| Disconnect before chatFn returns | Client closes mid-LLM-call | chatFn returns ctx error, no events emitted after RUN_STARTED | Handler returns silently |
-| Disconnect after chatFn returns | Client closes between response ready and write | No TEXT_MESSAGE events written | Handler returns silently |
-| chatFn error (not cancellation) | LLM returns non-ctx error | AG-UI error event emitted as today | Existing error path unchanged |
+| Scenario                         | Input / State                                  | Expected Output / Behavior                                    | Error Handling                |
+| -------------------------------- | ---------------------------------------------- | ------------------------------------------------------------- | ----------------------------- |
+| Normal request                   | Client stays connected                         | Full event sequence emitted                                   | N/A                           |
+| Disconnect before chatFn returns | Client closes mid-LLM-call                     | chatFn returns ctx error, no events emitted after RUN_STARTED | Handler returns silently      |
+| Disconnect after chatFn returns  | Client closes between response ready and write | No TEXT_MESSAGE events written                                | Handler returns silently      |
+| chatFn error (not cancellation)  | LLM returns non-ctx error                      | AG-UI error event emitted as today                            | Existing error path unchanged |
 
 </frozen-after-approval>
 
