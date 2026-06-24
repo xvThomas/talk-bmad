@@ -2,7 +2,7 @@
 title: "AG-UI Protocol Server (talk serve)"
 status: approved
 created: 2026-06-21
-updated: 2026-06-23
+updated: 2026-06-24
 ---
 
 # PRD: AG-UI Protocol Server (`talk serve`)
@@ -56,7 +56,7 @@ The architecture is deliberately simple: one `talk serve` instance = one pre-con
 - **CopilotKit** — React component library that implements the AG-UI client protocol. Provides `HttpAgent` class and pre-built chat UI components.
 - **MCP** — Model Context Protocol. Protocol for LLM↔tool communication. MCP servers expose tools the LLM can invoke.
 - **Session** — A conversation thread identified by a unique `threadId`. Contains ordered messages and persists across requests.
-- **Agent configuration** — The combination of system prompt + MCP server URLs + LLM provider/model that defines an agent's behavior. Set at server startup, static for the lifetime of the instance.
+- **Agent configuration** — The combination of system prompt + MCP server URLs + LLM API keys that defines an agent's capabilities. Set at server startup, static for the lifetime of the instance. Does not include model selection, which is a per-request choice.
 - **ConversationManager** — Existing internal component that orchestrates multi-turn conversations (LLM calls, tool execution loops, message storage).
 
 ## 4. Features
@@ -211,12 +211,13 @@ When resuming a session, all historical messages are loaded and passed to the LL
 
 #### FR-12: Read configuration from existing store
 
-The server reads MCP server URLs, system prompt, and LLM settings from the same persisted configuration used by the CLI.
+The server reads MCP server URLs, system prompt, and LLM API keys from the same persisted configuration used by the CLI. Model selection is not part of this configuration — it comes from the frontend per request (see FR-15).
 
 **Consequences (testable):**
 
 - A `talk serve` instance started after `talk` CLI configuration works without additional setup.
 - Changes to configuration via CLI are reflected on next server restart.
+- The server does not require a default model in its configuration.
 
 #### FR-13: Configurable server port
 
@@ -239,6 +240,17 @@ The server always starts and listens on its port regardless of configuration sta
 - Database unreachable → AG-UI error event with message ("Service temporairement indisponible, veuillez réessayer.") + `ERROR` level log with technical details for the operator.
 - The server process never exits due to configuration errors — it remains available and can recover (e.g., DB reconnection) without restart.
 - Health-degraded state is visible in logs (structured logging with error category).
+
+#### FR-15: Model selection per request
+
+The frontend sends a model alias in each request via `forwardedProps.model`. The server resolves the alias against the known model registry (`domain.Models`) and uses the corresponding LLM provider/model for that request. The model alias is mandatory — requests without it are rejected.
+
+**Consequences (testable):**
+
+- A valid `forwardedProps.model` value (e.g., `"sonnet-4.6"`, `"haiku-4.5"`) causes the server to use that model for the LLM call.
+- Missing `forwardedProps.model` → AG-UI error event with message "Le champ model est requis. Modèles disponibles : haiku-4.5, sonnet-4.6, opus, o4-mini, gpt-5.4, mistral-small."
+- Unknown model alias → AG-UI error event listing the available models.
+- The model alias is passed via the AG-UI standard `forwardedProps` field (`RunAgentInput.ForwardedProps`), which CopilotKit supports natively.
 
 ## 5. Non-Goals (Explicit)
 

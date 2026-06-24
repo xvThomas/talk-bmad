@@ -30,6 +30,7 @@ This document provides the complete epic and story breakdown for the AG-UI Proto
 - FR-12: Read configuration from existing CLI store
 - FR-13: Configurable server port (default 8090, SERVE_PORT env, --port flag)
 - FR-14: Runtime error reporting via AG-UI (server always starts, errors as AG-UI events)
+- FR-15: Model selection per request (frontend sends model alias via forwardedProps.model, mandatory)
 
 ### Non-Functional Requirements
 
@@ -64,6 +65,7 @@ This document provides the complete epic and story breakdown for the AG-UI Proto
 | FR-12 | Epic 1 | Read config from existing store   |
 | FR-13 | Epic 1 | Configurable server port          |
 | FR-14 | Epic 1 | Runtime error reporting via AG-UI |
+| FR-15 | Epic 1 | Model selection per request       |
 | FR-4  | Epic 2 | Execute tool calls via MCP        |
 | FR-5  | Epic 2 | Emit tool call events             |
 | FR-5b | Epic 2 | Emit error events on tool failure |
@@ -78,7 +80,7 @@ This document provides the complete epic and story breakdown for the AG-UI Proto
 ### Epic 1: Conversation AG-UI de bout en bout
 
 End clients can send a message from a CopilotKit frontend and receive an assistant response as an AG-UI SSE event stream.
-**FRs covered:** FR-1, FR-2, FR-3, FR-6, FR-12, FR-13, FR-14
+**FRs covered:** FR-1, FR-2, FR-3, FR-6, FR-12, FR-13, FR-14, FR-15
 
 ### Epic 2: Exécution d'outils MCP avec événements AG-UI
 
@@ -139,16 +141,29 @@ So that my CopilotKit frontend can communicate with the assistant.
 ### Story 1.3: Intégration ConversationManager et config existante
 
 As a platform operator,
-I want the server to use the same LLM configuration and system prompt as the CLI,
+I want the server to use the same infrastructure configuration (API keys, system prompt, MCP servers) as the CLI,
 So that I don't need to configure the agent twice.
 
 **Acceptance Criteria:**
 
-**Given** the talk CLI has been configured (LLM API key, system prompt, provider)
+**Given** the talk CLI has been configured (LLM API keys, system prompt, MCP servers)
 **When** `talk serve` starts
 **Then** it reads the configuration from the same store as the CLI
-**And** the LLM responds using the configured provider and model
 **And** the system prompt is applied to all conversations
+**And** all configured LLM API keys are available for model resolution
+
+**Given** the frontend sends a valid model alias in `forwardedProps.model` (e.g., "sonnet-4.6")
+**When** a `POST /agent` request is processed
+**Then** the server resolves the alias against the `domain.Models` registry
+**And** the corresponding LLM provider and API model ID are used for that request
+
+**Given** the frontend does not send `forwardedProps.model` or sends an empty value
+**When** a `POST /agent` request arrives
+**Then** an AG-UI error event is emitted listing available models
+
+**Given** the frontend sends an unknown model alias
+**When** a `POST /agent` request arrives
+**Then** an AG-UI error event is emitted with a message listing the valid model aliases
 
 **Given** the configuration is incomplete (no API key or no system prompt)
 **When** a `POST /agent` request arrives
