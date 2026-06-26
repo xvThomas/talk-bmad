@@ -31,6 +31,7 @@ This document provides the complete epic and story breakdown for the AG-UI Proto
 - FR-13: Configurable server port (default 8090, SERVE_PORT env, --port flag)
 - FR-14: Runtime error reporting via AG-UI (server always starts, errors as AG-UI events)
 - FR-15: Model selection per request (frontend sends model alias via forwardedProps.model, mandatory)
+- FR-16: Thinking/reasoning via forwardedProps (optional, emit REASONING_* AG-UI events when LLM produces thinking)
 
 ### Non-Functional Requirements
 
@@ -66,6 +67,7 @@ This document provides the complete epic and story breakdown for the AG-UI Proto
 | FR-13 | Epic 1 | Configurable server port          |
 | FR-14 | Epic 1 | Runtime error reporting via AG-UI |
 | FR-15 | Epic 1 | Model selection per request       |
+| FR-16 | Epic 1 | Thinking/reasoning via AG-UI      |
 | FR-4  | Epic 2 | Execute tool calls via MCP        |
 | FR-5  | Epic 2 | Emit tool call events             |
 | FR-5b | Epic 2 | Emit error events on tool failure |
@@ -80,7 +82,7 @@ This document provides the complete epic and story breakdown for the AG-UI Proto
 ### Epic 1: Conversation AG-UI de bout en bout
 
 End clients can send a message from a CopilotKit frontend and receive an assistant response as an AG-UI SSE event stream.
-**FRs covered:** FR-1, FR-2, FR-3, FR-6, FR-12, FR-13, FR-14, FR-15
+**FRs covered:** FR-1, FR-2, FR-3, FR-6, FR-12, FR-13, FR-14, FR-15, FR-16
 
 ### Epic 2: Exécution d'outils MCP avec événements AG-UI
 
@@ -189,6 +191,32 @@ So that server resources are freed immediately.
 **And** the in-flight LLM call is cancelled
 **And** no partial result is persisted to the session store
 **And** no goroutine leak occurs (verifiable via test)
+
+### Story 1.5: Thinking/Reasoning via AG-UI
+
+As a frontend developer,
+I want to optionally activate LLM thinking/reasoning via `forwardedProps.thinkingEffort` and receive the thinking output as AG-UI `REASONING_*` events,
+So that my UI can display the model's chain-of-thought to the user.
+
+**Acceptance Criteria:**
+
+**Given** a `POST /agent` request with `forwardedProps.thinkingEffort` set to `"low"`, `"medium"`, or `"high"`
+**When** the LLM supports thinking
+**Then** reasoning is activated for that request with the corresponding effort level
+**And** the thinking output is emitted as AG-UI `REASONING_*` events before `TEXT_MESSAGE_*` events
+**And** the event sequence is: `REASONING_START` → `REASONING_MESSAGE_START` → `REASONING_MESSAGE_CONTENT` → `REASONING_MESSAGE_END` → `REASONING_END` → `TEXT_MESSAGE_START` → ...
+
+**Given** a `POST /agent` request without `forwardedProps.thinkingEffort` (or set to `"off"` or empty)
+**When** the request is processed
+**Then** thinking is not activated (backward compatible, same behavior as today)
+
+**Given** a `POST /agent` request with an invalid `thinkingEffort` value
+**When** the request is processed
+**Then** the value is ignored and thinking defaults to off (no error emitted)
+
+**Given** the tool loop executes multiple LLM calls with thinking active
+**When** each intermediate LLM call returns thinking content
+**Then** reasoning events are emitted for each iteration (before the tool call events of the next iteration)
 
 ---
 
