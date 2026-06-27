@@ -65,7 +65,7 @@ so that my UI can display the model's chain-of-thought to the user.
   - [ ] This follows the same pattern as `ToolCallEmitter` which is already passed into the manager's pipeline
 
 - [ ] Task 5: Ensure correct event ordering in the SSE stream (AC: #4, #6)
-  - [ ] The `ReasoningEmitter` fires during `HandleMessageEvent` — this happens *inside* the `Chat()` loop, so reasoning events are emitted live per LLM iteration
+  - [ ] The `ReasoningEmitter` fires during `HandleMessageEvent` — this happens _inside_ the `Chat()` loop, so reasoning events are emitted live per LLM iteration
   - [ ] For intermediate iterations (with tool calls): reasoning events are emitted before tool call events (ToolCallEmitter fires separately)
   - [ ] For the final iteration (text response): reasoning events are emitted before the handler writes `TEXT_MESSAGE_*` events
   - [ ] Verify no change needed to the handler's post-`chatFn` code — `TEXT_MESSAGE_*` events are emitted after `Chat()` returns, which is after all `HandleMessageEvent` calls have completed

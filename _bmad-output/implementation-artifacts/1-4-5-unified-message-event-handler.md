@@ -42,13 +42,13 @@ so that the AG-UI serve path can use a single `AGUIEmitter` for all SSE content 
 
 ## Acceptance Criteria Additionnels
 
-9. **Given** la règle projet limite les interfaces à 1-3 méthodes (cf. `_bmad-output/planning-artifacts/epics.md`), **when** la story 1.4.5 finalise les interfaces de handlers, **then** la conception respecte la règle 1-3 méthodes ou inclut une dérogation explicite approuvée avec portée, justification et garde-fous.
+9. **Given** la règle projet limite les interfaces à 1-3 méthodes (cf. `_bmad-output/planning-artifacts/epics.md`), **when** la story 1.4.5 finalise les interfaces de handlers, **then** une dérogation formelle est appliquée: `MessageEventHandler` conserve 4 méthodes car elle représente un lifecycle conversationnel complet et cohérent (messages, turns, tool calls). Garde-fous: aucune méthode supplémentaire ne peut être ajoutée sans ADR explicite.
 
-10. **Given** `AGUIEmitter` émet des events SSE, **when** une erreur d'écriture survient à cause d'une annulation de contexte ou d'une déconnexion client, **then** `AGUIEmitter` retourne nil et cesse l'émission; **and when** une erreur d'écriture survient hors annulation, **then** l'erreur est journalisée avec contexte structuré et traitée explicitement selon la politique de fin de run.
+10. **Given** `AGUIEmitter` émet des events SSE, **when** une erreur d'écriture survient (annulation, déconnexion ou erreur inattendue), **then** `AGUIEmitter` journalise l'erreur avec contexte structuré (niveau warn pour erreur inattendue, debug pour annulation/déconnexion) et retourne nil dans tous les cas. Le run continue en best effort sans interruption du pipeline.
 
 11. **Given** un run est proche de sa fin, **when** le contexte est annulé avant la terminalisation, **then** le système applique une politique terminale déterministe et n'émet pas d'events terminaux contradictoires.
 
-12. **Given** l'émission SSE et la persistence s'exécutent en parallèle, **when** une branche réussit et l'autre échoue, **then** le statut final du run est déterminé par une politique d'arbitrage documentée et validée par des tests d'intégration.
+12. **Given** l'émission SSE et la persistence s'exécutent en parallèle, **when** l'émission SSE échoue mais la persistence réussit (ou inversement), **then** le run se termine en best effort: `RUN_FINISHED` est émis si `chatFn` retourne sans erreur, indépendamment du succès de livraison SSE. Un échec de persistence remonte via le pipeline et déclenche `RUN_ERROR`.
 
 13. **Given** les signatures `ChatFunc` et `ConversationManager` évoluent, **when** la migration est implémentée, **then** le déploiement est réalisé par étapes avec checklist d'impact complète (call sites, mocks, tests), **and** aucune régression de contrat d'events n'est introduite sur les parcours serve et CLI.
 
@@ -131,10 +131,10 @@ so that the AG-UI serve path can use a single `AGUIEmitter` for all SSE content 
 ## Technical Notes
 
 - **Pas de nouveau type** : les structs `MessageEvent`, `TurnEvent`, `ToolCallEvent`, `ToolCallEndEvent` restent inchangées.
-- **Interface à 4 méthodes** : plus grande que l'idiome Go habituel (1-2 méthodes) mais sémantiquement cohérente — elle représente un lifecycle complet de conversation.
+- **Interface à 4 méthodes (dérogation formelle)** : dépasse la règle projet 1-3 méthodes mais représente un lifecycle conversationnel complet et indivisible. Garde-fou: aucune 5ème méthode sans ADR. Justification: découper en sous-interfaces créerait un couplage implicite et une composition artificielle sans gain de testabilité.
 - **`NoOpMessageEventHandler`** (ou embed struct) permet aux implémenteurs de ne surcharger que les méthodes pertinentes.
 - **Ordering garanti** : `HandleMessageEvent` est appelé dans `Chat()` pour le message final (Role=Assistant, ToolCalls vide) → l'`AGUIEmitter` émet `TEXT_MESSAGE_*` à ce moment. Le handler HTTP écrit `RUN_FINISHED` uniquement après retour de `chatFn`, donc l'ordering est : contenu → run_finished.
-- **Même phase (parallèle) pour SSE + storage** : l'`AGUIEmitter` et le store s'exécutent en parallèle dans la même phase. Une erreur SSE (client déconnecté) ne bloque PAS la persistence. L'`AGUIEmitter` avale les erreurs d'écriture (retourne nil) — la détection de déconnexion se fait via `ctx.Err()` au prochain point de contrôle dans `Chat()`.
+- **Même phase (parallèle) pour SSE + storage — politique best effort** : l'`AGUIEmitter` et le store s'exécutent en parallèle dans la même phase. L'`AGUIEmitter` retourne toujours nil (log + nil), donc ne bloque jamais la persistence ni le pipeline. Un échec SSE (déconnexion ou erreur inattendue) est journalisé mais n'impacte pas le statut du run. En revanche, un échec de persistence remonte normalement via le pipeline et cause `RUN_ERROR`. La détection de déconnexion côté flow se fait via `ctx.Err()` au prochain point de contrôle dans `Chat()`.
 - **Thread-safety SSEWriter** : `SSEWriter` est déjà protégé par un mutex (`sync.Mutex`) dans `talk/internal/agui/sse.go` et sérialise les écritures dans `WriteEvent`. En exécution parallèle, aucun mutex additionnel n'est requis autour du writer; le principal risque devient la cohérence fonctionnelle (doublons/ordering d'events) si plusieurs emitters écrivent les mêmes types d'events.
 - **`ChatFunc` retourne `error` seul** : le handler n'utilise plus le texte de la réponse. Le texte est émis directement par l'`AGUIEmitter` via le pipeline d'events.
 - **Le `SSEWriter` est passé via `ChatOptions`** — `chatFn` dans serve.go instancie l'`AGUIEmitter` avec le writer.
