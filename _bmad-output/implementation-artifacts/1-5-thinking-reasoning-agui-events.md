@@ -82,6 +82,8 @@ so that my UI can display the model's chain-of-thought to the user.
 
 - [x] [Review][Patch] Replace hard-coded AG-UI event type strings in reasoning tests with SDK constants to reduce brittleness across protocol/SDK evolution [talk/internal/agui/emitter_test.go:254]
 
+[Patch]: #review-findings
+
 ## Technical Notes
 
 - **No new handler, no new file**: The reasoning logic is added directly to `AGUIEmitter.HandleMessageEvent`. This is the simplest approach because the `AGUIEmitter` already receives all `MessageEvent`s and already has the `SSEWriter` reference.
