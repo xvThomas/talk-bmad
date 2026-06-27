@@ -1,10 +1,10 @@
 ---
-baseline_commit: null
+baseline_commit: dca536a3e4f796d98b7ad46e080e5225152aead0
 ---
 
 # Story 1.5: Thinking/Reasoning via AG-UI
 
-Status: not-started
+Status: done
 
 ## Story
 
@@ -17,8 +17,10 @@ so that my UI can display the model's chain-of-thought to the user.
 - The CLI already supports thinking via `/thinking` command (`SetThinkingEffort`), and the `ConsoleUsageReporter` displays `messageEvent.Thinking` in the terminal.
 - The ag-ui serve path creates a fresh `ConversationManager` per request but never calls `SetThinkingEffort` — thinking is always off.
 - The AG-UI protocol defines `REASONING_*` event types. The Go Community SDK exposes constructors in `events/reasoning_events.go`: `NewReasoningStartEvent`, `NewReasoningMessageStartEvent`, `NewReasoningMessageContentEvent`, `NewReasoningMessageEndEvent`, `NewReasoningEndEvent`.
-- Thinking content is already returned by Anthropic/OpenAI clients in `domain.Message.Thinking` (ephemeral, not persisted). It flows through `MessageEvent.Message.Thinking` to event handlers.
-- The `MessageEventHandler` mechanism already propagates thinking content to all registered handlers (store, reporter). A `ReasoningEmitter` can be wired the same way as the existing `ToolCallEmitter` pattern — no change to `ChatFunc` or `Chat()` signatures needed.
+- Thinking content is already returned by Anthropic/OpenAI clients in `domain.Message.Thinking` (ephemeral, not persisted). It flows through `MessageEvent.Message.Thinking` to all `MessageEventHandler` instances in the pipeline.
+- Post story 1.4.5: `AGUIEmitter` already handles `TEXT_MESSAGE_*` and `TOOL_CALL_*` events via `HandleMessageEvent` and `HandleToolCallStart/End`. The reasoning emission fits naturally inside the existing `AGUIEmitter.HandleMessageEvent` — no new handler needed.
+- `ChatFunc` signature is `func(ctx, threadID, modelAlias, messages, ChatOptions) error`. `ChatOptions` currently contains only `SSEWriter`.
+- `serve.go` constructs a pipeline `{aguiEmitter, messages}` in the same phase. The `AGUIEmitter` already receives all `MessageEvent`s with `Message.Thinking` populated.
 
 ## Acceptance Criteria
 
@@ -38,64 +40,57 @@ so that my UI can display the model's chain-of-thought to the user.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extract `thinkingEffort` from `forwardedProps` in handler (AC: #1, #2, #3)
-  - [ ] In `talk/internal/agui/handler.go`, add `extractThinkingEffort(forwardedProps any) domain.ThinkingEffort` function
+- [ ] Task 1: Add `ThinkingEffort` to `ChatOptions` and extract from `forwardedProps` (AC: #1, #2, #3)
+  - [ ] In `talk/internal/agui/handler.go`, add `ThinkingEffort domain.ThinkingEffort` field to `ChatOptions` struct
+  - [ ] Add `extractThinkingEffort(forwardedProps any) domain.ThinkingEffort` function
   - [ ] Valid values: `"low"`, `"medium"`, `"high"` → corresponding `domain.ThinkingEffort`; anything else → `""` (zero value = off)
+  - [ ] In `ServeHTTP`, call `extractThinkingEffort(input.ForwardedProps)` and pass result in `ChatOptions`
   - [ ] Unit tests for all valid values, empty, missing, invalid, nil forwardedProps
 
 - [ ] Task 2: Wire `thinkingEffort` into `ConversationManager` from serve.go (AC: #1, #2)
-  - [ ] In `talk/cmd/cli/serve.go` `chatFn`, extract `thinkingEffort` from `forwardedProps` and call `manager.SetThinkingEffort(thinkingEffort)` before `manager.Chat()`
-  - [ ] No change to `ChatFunc` signature — `thinkingEffort` is set on the manager directly (same pattern as the CLI `/thinking` command)
+  - [ ] In `talk/cmd/cli/serve.go` `chatFn`, read `opts.ThinkingEffort` and call `manager.SetThinkingEffort(opts.ThinkingEffort)` before `manager.Chat()`
+  - [ ] When `ThinkingEffort` is zero value (empty string), `SetThinkingEffort` is a no-op (thinking stays off)
 
-- [ ] Task 3: Create `ReasoningEmitter` as a `MessageEventHandler` (AC: #4, #5, #6, #7)
-  - [ ] In `talk/internal/agui/`, create `reasoning_emitter.go` with `ReasoningEmitter` struct
-  - [ ] `ReasoningEmitter` implements `domain.MessageEventHandler`
-  - [ ] Constructor: `NewReasoningEmitter(sse *SSEWriter, log *slog.Logger) *ReasoningEmitter`
-  - [ ] In `HandleMessageEvent`: if `event.Message.Thinking != ""`, emit the 5-event reasoning sequence via `SSEWriter`
-  - [ ] Event sequence: `NewReasoningStartEvent(messageID)` → `NewReasoningMessageStartEvent(messageID, "reasoning")` → `NewReasoningMessageContentEvent(messageID, thinking)` → `NewReasoningMessageEndEvent(messageID)` → `NewReasoningEndEvent(messageID)`
-  - [ ] Generate a unique `messageID` per reasoning emission (separate from the text message ID)
-  - [ ] Check `ctx.Err()` before each write — if cancelled, return nil immediately
-  - [ ] If `event.Message.Thinking` is empty, no-op (return nil)
-  - [ ] `HandleTurnEvent`: no-op (return nil)
+- [ ] Task 3: Add reasoning event emission in `AGUIEmitter.HandleMessageEvent` (AC: #4, #5, #6, #7)
+  - [ ] In `talk/internal/agui/emitter.go`, modify `HandleMessageEvent`:
+    - Before the existing TEXT_MESSAGE logic, check `event.Message.Thinking != ""`
+    - If thinking is present, emit the 5-event reasoning sequence via `e.writeEvent`:
+      `NewReasoningStartEvent(reasoningID)` → `NewReasoningMessageStartEvent(reasoningID, "reasoning")` → `NewReasoningMessageContentEvent(reasoningID, thinking)` → `NewReasoningMessageEndEvent(reasoningID)` → `NewReasoningEndEvent(reasoningID)`
+    - Generate a unique `reasoningID` (uuid) separate from the text message ID
+    - If any write returns an error (client disconnect), return immediately (existing `writeEvent` best-effort policy applies)
+  - [ ] Reasoning events are emitted for ALL assistant messages that have thinking content — including intermediate messages with tool calls (AC #6)
+  - [ ] The existing TEXT_MESSAGE guard (`len(ToolCalls) == 0 && Content != ""`) still controls text emission — reasoning and text emission are independent filters
 
-- [ ] Task 4: Register `ReasoningEmitter` in the event handler pipeline (AC: #4, #5, #6)
-  - [ ] In `talk/cmd/cli/serve.go`, instantiate `ReasoningEmitter` per request (needs the `SSEWriter`)
-  - [ ] Add it to the `MessageEventHandlers` phases when building the `ConversationManager`
-  - [ ] Place it in a phase that executes before the store handler (reasoning events must be emitted to SSE before the response is finalized)
-  - [ ] This follows the same pattern as `ToolCallEmitter` which is already passed into the manager's pipeline
+- [ ] Task 4: Unit tests for reasoning emission in `AGUIEmitter` (AC: #4, #5, #7)
+  - [ ] Test `HandleMessageEvent` with assistant message + `Thinking` set + no tool calls → verify REASONING*\* then TEXT_MESSAGE*\* sequence
+  - [ ] Test `HandleMessageEvent` with assistant message + `Thinking` set + tool calls present → verify REASONING*\* emitted, no TEXT_MESSAGE*\*
+  - [ ] Test `HandleMessageEvent` with assistant message + empty `Thinking` → verify no REASONING\_\* events
+  - [ ] Test `HandleMessageEvent` with user message + `Thinking` set → verify no events (Role filter)
+  - [ ] Test cancelled context during reasoning emission → verify partial write stops, no error returned
 
-- [ ] Task 5: Ensure correct event ordering in the SSE stream (AC: #4, #6)
-  - [ ] The `ReasoningEmitter` fires during `HandleMessageEvent` — this happens _inside_ the `Chat()` loop, so reasoning events are emitted live per LLM iteration
-  - [ ] For intermediate iterations (with tool calls): reasoning events are emitted before tool call events (ToolCallEmitter fires separately)
-  - [ ] For the final iteration (text response): reasoning events are emitted before the handler writes `TEXT_MESSAGE_*` events
-  - [ ] Verify no change needed to the handler's post-`chatFn` code — `TEXT_MESSAGE_*` events are emitted after `Chat()` returns, which is after all `HandleMessageEvent` calls have completed
-
-- [ ] Task 6: Unit tests for `ReasoningEmitter` (AC: #4, #5, #7)
-  - [ ] Test `HandleMessageEvent` with non-empty `Message.Thinking` — verify 5-event sequence written to SSEWriter
-  - [ ] Test `HandleMessageEvent` with empty `Message.Thinking` — verify no events
-  - [ ] Test `HandleMessageEvent` with cancelled context — verify no events and no error
-  - [ ] Test `HandleTurnEvent` — verify no-op
-
-- [ ] Task 7: Handler-level integration tests (AC: #1, #2, #3, #4, #5)
+- [ ] Task 5: Handler-level integration tests (AC: #1, #2, #3, #4, #5)
   - [ ] Test full SSE sequence with `forwardedProps.thinkingEffort: "high"` and thinking content present
   - [ ] Test no `REASONING_*` events when `thinkingEffort` is absent
   - [ ] Test no `REASONING_*` events when LLM returns empty thinking despite effort being set
   - [ ] Test invalid `thinkingEffort` value defaults to off
 
-- [ ] Task 8: Integration test with tool calls + thinking (AC: #6)
-  - [ ] Test reasoning events emitted between tool iterations when thinking is active
-  - [ ] Verify ordering: `REASONING_*` → `TOOL_CALL_*` → `REASONING_*` → `TEXT_MESSAGE_*`
+- [ ] Task 6: Integration test with tool calls + thinking (AC: #6)
+  - [ ] Test reasoning events emitted for intermediate iterations when thinking is active
+  - [ ] Verify ordering: `REASONING_*` → `TOOL_CALL_START/ARGS/END` → `REASONING_*` → `TEXT_MESSAGE_*`
+
+### Review Findings
+
+- [x] [Review][Patch] Replace hard-coded AG-UI event type strings in reasoning tests with SDK constants to reduce brittleness across protocol/SDK evolution [talk/internal/agui/emitter_test.go:254]
 
 ## Technical Notes
 
-- **No signature changes required**: `ChatFunc` remains `(string, error)` and `Chat()` remains `(string, error)`. The thinking content is already propagated through `MessageEvent.Message.Thinking` to all registered `MessageEventHandler` instances — the `ReasoningEmitter` receives it via the existing pipeline.
-- The `REASONING_MESSAGE_CHUNK` convenience event could simplify emission (auto start/end), but the explicit Start/Content/End pattern is clearer and matches the tool call event pattern already used.
-- For multi-iteration tool loops, thinking is emitted per-iteration naturally because `HandleMessageEvent` is called at each loop iteration inside `Chat()`. The `ReasoningEmitter` fires live — no batching needed.
-- This approach mirrors `ToolCallEmitter` which also emits SSE events from within the `Chat()` execution loop without changing its return type.
-- The `ReasoningEmitter` must be instantiated per-request (it holds a reference to the request's `SSEWriter`), same as `ToolCallEmitter`.
+- **No new handler, no new file**: The reasoning logic is added directly to `AGUIEmitter.HandleMessageEvent`. This is the simplest approach because the `AGUIEmitter` already receives all `MessageEvent`s and already has the `SSEWriter` reference.
+- **Independent filters**: Reasoning emission checks `event.Message.Thinking != ""` (any assistant message). Text emission checks `len(ToolCalls) == 0 && Content != ""` (final message only). Both can fire on the same event (final message with thinking + content).
+- **Ordering within a single `HandleMessageEvent` call**: reasoning events are emitted BEFORE text events in the same method call. This guarantees AC #4 ordering.
+- **Multi-iteration ordering**: `HandleMessageEvent` is called inside `Chat()` for each LLM response. For intermediate responses (with tool calls), reasoning fires → then tool execution dispatches `HandleToolCallStart/End`. This naturally produces: `REASONING_*` → `TOOL_CALL_*` per iteration.
+- **`ChatOptions.ThinkingEffort`**: passed from handler to `chatFn`, then `chatFn` calls `manager.SetThinkingEffort()`. Same pattern as the CLI's `/thinking` command — no architectural change.
+- **Best-effort SSE writes**: `AGUIEmitter.writeEvent` already handles context cancellation and returns errors. The reasoning emission follows the same pattern — if a write fails, stop emitting (don't crash the pipeline).
 
 ## Dependencies
 
-- Story 1.2 (handler, SSE writer) — must be done
-- Story 2.2 (ToolCallEmitter pattern to follow) — must be done
-- Story 1.4 (context cancellation) — must be done
+- Story 1.4.5 (unified `MessageEventHandler`, `AGUIEmitter`, `ChatOptions`) — must be done
