@@ -12,7 +12,7 @@ so that I get answers that require real-time data or computation.
 
 1. Given the server is configured with one or more MCP servers, when the LLM response contains tool call requests, then the server executes tool calls against the configured MCP server(s) and tool results are fed back to the LLM as context for the next completion.
 2. Given the LLM produces tool calls, when the loop iterates, then it continues until the LLM produces a final text response (max 5 iterations) and the final text is emitted as `TEXT_MESSAGE_START` → `TEXT_MESSAGE_CONTENT` → `TEXT_MESSAGE_END`.
-3. Given the tool loop reaches 5 iterations without a final text response, when the limit is hit, then an AG-UI error event is emitted with the message: "J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique."
+3. Given the tool loop reaches 5 iterations without a final text response, when the limit is hit, then an AG-UI error event is emitted with the message: "I reached the tool call limit without being able to finalize. Try rephrasing your question more specifically."
 4. Given the tool loop has been exhausted, when intermediate messages have been produced, then all intermediate messages (tool calls + results) are persisted in the session store.
 
 ## Out of Scope (deferred to Story 2.4)
@@ -27,10 +27,20 @@ The "continue" resume mechanism (user sends a follow-up message to resume after 
   - [x] In `talk/internal/domain/conversation.go`, replace the raw `fmt.Errorf("exceeded maximum tool call iterations (%d)")` with a typed sentinel `ErrMaxToolIterations` that can be detected with `errors.Is()`
   - [x] Ensure the error is returned AFTER persisting all intermediate messages (current behavior already correct — messages are stored in the loop before the error return)
 - [x] Task 2: Map sentinel to user-friendly AG-UI message (AC: #3)
-  - [x] In `talk/cmd/cli/serve.go` `userFacingError()`, add a case for `domain.ErrMaxToolIterations` returning: `"J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique."`
+  - [x] In `talk/cmd/cli/serve.go` `userFacingError()`, add a case for `domain.ErrMaxToolIterations` returning: `"I reached the tool call limit without being able to finalize. Try rephrasing your question more specifically."`
 - [x] Task 3: End-to-end test for tool execution through AG-UI (AC: #1, #2)
   - [x] Write handler-level test: mock chatFn that simulates a tool-loop turn → returns final text → verify correct SSE event sequence (RUN*STARTED → TEXT_MESSAGE*\* → RUN_FINISHED)
   - [x] Write handler-level test: mock chatFn that returns the sentinel error → verify RUN_ERROR event contains the user-friendly message
+
+### Review Findings
+
+- [x] [Review][Patch] ErrMaxToolIterations user-facing message now aligned with updated AC #3 English text [talk/cmd/cli/serve.go:239]
+
+  Detail: Story 2.1 AC #3 was updated to English to match the authoritative behavior from recent changes. The review item is considered resolved by contract alignment.
+
+- [ ] [Review][Patch] ErrMaxToolIterations and config error messages have casing mismatch with current tests [talk/cmd/cli/serve.go:234]
+
+  Detail: The implementation currently returns lowercase-first strings (for missing env var, system prompt error, and max tool iterations), while the current tests assert capitalized strings. This causes deterministic test failures in TestUserFacingError until implementation and tests are made consistent.
 
 ## Dev Notes
 
@@ -53,7 +63,7 @@ manager := domain.NewConversationManager(domain.ConversationManagerConfig{
 })
 ```
 
-**What is NOT yet correct:** The "exceeded max iterations" error is caught by the generic `default` case in `userFacingError()` → maps to "an unexpected error occurred" instead of the specified user-friendly message ("J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique.").
+**What is NOT yet correct:** The "exceeded max iterations" error is caught by the generic `default` case in `userFacingError()` → maps to "an unexpected error occurred" instead of the specified user-friendly message ("I reached the tool call limit without being able to finalize. Try rephrasing your question more specifically.").
 
 ### Implementation Approach
 
@@ -109,7 +119,7 @@ For `userFacingError` testing, test the function directly:
 ```go
 func Test_userFacingError_maxToolIterations(t *testing.T) {
     err := userFacingError(domain.ErrMaxToolIterations)
-    want := "J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique."
+    want := "I reached the tool call limit without being able to finalize. Try rephrasing your question more specifically."
     if err.Error() != want {
         t.Errorf("got %q, want %q", err.Error(), want)
     }
