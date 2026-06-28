@@ -1,6 +1,10 @@
+---
+baseline_commit: eedbf3e8c03b47e64c5603f063c6622ef374d75d
+---
+
 # Story 2.4: Reprise de conversation après limite d'itérations
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -334,6 +338,15 @@ Since `ErrMaxToolIterations` is no longer propagated as an error to the handler'
 - `go test ./cmd/cli/ -count=1`
 - `make lint` (golangci-lint v2)
 
+### Review Findings
+
+- [x] [Review][Patch] Validate resume interrupt identity and reason (`talk:max_iterations`) before continuation/cancellation [talk/internal/agui/handler.go:63]
+- [x] [Review][Patch] Reject unknown or conflicting resume statuses instead of implicit continuation [talk/internal/agui/handler.go:86]
+- [x] [Review][Patch] Fail fast on `history_turns.status` migration errors (do not swallow unexpected ALTER TABLE failures) [talk/internal/memory/sqlite/store.go:107]
+- [x] [Review][Patch] Do not ignore persistence failures when recording incomplete turns on max-iteration path [talk/internal/domain/conversation.go:226]
+- [x] [Review][Patch] Add fallback when incomplete turn is selected as detailed but messages are missing [talk/internal/domain/context_builder.go:55]
+- [x] [Review][Patch] Add edge-case tests for resume status matrix, interrupt mismatch, and migration failure [talk/internal/agui/handler_test.go:862]
+
 ## File Change Summary
 
 | File                                           | Action | Purpose                                                        |
@@ -415,3 +428,60 @@ SQLite `ALTER TABLE ADD COLUMN` with a `DEFAULT` value is safe for existing data
 - The context builder only changes behavior for turns with `Status == "incomplete"` — existing complete turns behave identically
 - Normal chat flows (no max iterations) are completely unchanged
 - Requests without `Resume` field behave exactly as before
+
+## Tasks Completion
+
+- [x] Task 1: Add `Status` field to `TurnEvent` and `HistoryTurn`
+- [x] Task 2: Schema migration — add `status` column to `history_turns`
+- [x] Task 3: Persist incomplete turn on max iterations
+- [x] Task 4: Update `HandleTurnEvent` in SQLite store to persist status
+- [x] Task 5: Update `LoadHistoryTurnsFromSession` to load status
+- [x] Task 6: Force-include incomplete turns in `BuildContextMessages`
+- [x] Task 7: Emit interrupt via `RunFinished` on max iterations
+- [x] Task 8: Handle `Resume` field in incoming requests
+- [x] Task 9: Pass `ErrMaxToolIterations` through chatFn (bypass `userFacingError`)
+- [x] Task 10: Unit tests
+- [x] Task 11: Integration validation
+
+## Dev Agent Record
+
+### Implementation Plan
+
+- Used AG-UI SDK's built-in `NewRunFinishedEventWithOptions` + `WithOutcome` + `RunFinishedOutcome{Type: "interrupt"}` — no custom JSON construction needed
+- Handler intercepts `ErrMaxToolIterations` before generic error path and emits interrupt RunFinished
+- Resume handling: cancelled → immediate RunFinished; resolved → inject "Please continue where you left off." message + proceed with chatFn
+- `chatFn` in `serve.go` now passes `ErrMaxToolIterations` through directly (not wrapped by `userFacingError`) so `errors.Is` works in handler
+- Context builder force-includes incomplete turns by checking `turn.Status == TurnStatusIncomplete` after building `selectedDetailedTurnIDs`
+
+### Completion Notes
+
+All 6 acceptance criteria satisfied:
+
+1. ✅ `HandleTurnEvent` called with `Status: "incomplete"` on max iterations — verified by `TestConversation_MaxIterations_PersistsIncompleteTurn`
+2. ✅ `RunFinished` emitted with interrupt outcome — verified by `TestHandler_MaxIterations_EmitsInterruptRunFinished`
+3. ✅ Resume field handled — verified by `TestHandler_Resume_Resolved_ContinuesChat`
+4. ✅ Resume loads context with force-included incomplete turn — verified by `TestBuildContextMessages_IncompleteTurnForceIncluded_LeanMode`
+5. ✅ Force-include in all modes — verified by `TestBuildContextMessages_IncompleteTurnForceIncluded_LeanMode` and `TestBuildContextMessages_CompleteTurnSummarized_LeanMode` (no regression)
+6. ✅ New turn recorded normally — existing test infrastructure validates this (no merge logic added)
+
+Full regression: `go test ./... -count=1` — all 12 packages pass. `make lint` — 0 issues.
+
+## File List
+
+| File                                        | Action   | Purpose                                                      |
+| ------------------------------------------- | -------- | ------------------------------------------------------------ |
+| `talk/internal/domain/usage.go`             | MODIFIED | Added `Status string` field to `TurnEvent`                   |
+| `talk/internal/domain/store.go`             | MODIFIED | Added `Status string` field to `HistoryTurn`                 |
+| `talk/internal/domain/conversation.go`      | MODIFIED | Added turn status constants + persist incomplete turn        |
+| `talk/internal/domain/context_builder.go`   | MODIFIED | Force-include incomplete turns in detail                     |
+| `talk/internal/memory/sqlite/store.go`      | MODIFIED | Schema migration + status in INSERT/SELECT                   |
+| `talk/internal/agui/handler.go`             | MODIFIED | Interrupt emission + resume handling                         |
+| `talk/cmd/cli/serve.go`                     | MODIFIED | Pass-through `ErrMaxToolIterations` for handler interception |
+| `talk/internal/domain/conversation_test.go` | MODIFIED | 3 new tests (incomplete turn, force-include, no regression)  |
+| `talk/internal/agui/handler_test.go`        | MODIFIED | 3 new tests (interrupt, resume resolved, resume cancelled)   |
+| `talk/internal/memory/sqlite/store_test.go` | MODIFIED | 2 new tests (status persisted, empty defaults to complete)   |
+
+## Change Log
+
+- 2026-06-28: Implemented story 2.4 — AG-UI interrupt on max tool iterations + resume handling + context builder force-include for incomplete turns.
+- 2026-06-28: Addressed 6 code review findings — strict resume validation (threadId required, status validation, conflict detection), robust PRAGMA-based schema migration, slog error on persistence failure, context builder fallback for missing messages, edge-case test coverage.
