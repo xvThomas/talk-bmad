@@ -157,6 +157,7 @@ The application is designed as an extensible shell: V1 delivers the chat core, f
 | Backend URL        | `VITE_AGENT_URL` environment variable (default: `http://localhost:8090`)                                  |
 | Repository         | `talk-ui` (separate git repo, integrated in VS Code workspace)                                            |
 | Theme              | Dark only                                                                                                 |
+| UI language        | English (no i18n in V1; all user-facing strings and error messages in English)                            |
 | CopilotKit styling | Mixed approach: override default CopilotKit styles with targeted Tailwind CSS for non-headless components |
 
 ## 6. Scope — Out of V1
