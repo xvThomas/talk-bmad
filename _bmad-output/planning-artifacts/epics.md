@@ -35,7 +35,7 @@ This document provides the complete epic and story breakdown for the talk projec
 - FR-13: Configurable server port (default 8090, SERVE_PORT env, --port flag)
 - FR-14: Runtime error reporting via AG-UI (server always starts, errors as AG-UI events)
 - FR-15: Model selection per request (frontend sends model alias via forwardedProps.model, mandatory)
-- FR-16: Thinking/reasoning via forwardedProps (optional, emit REASONING_* AG-UI events when LLM produces thinking)
+- FR-16: Thinking/reasoning via forwardedProps (optional, emit REASONING\_\* AG-UI events when LLM produces thinking)
 
 ### Non-Functional Requirements
 
@@ -378,6 +378,7 @@ So that I can organize my conversation history.
 **Then** a new session is created (fresh start)
 
 ---
+
 ---
 
 ## Frontend Requirements Inventory (talk-ui)
@@ -411,32 +412,32 @@ So that I can organize my conversation history.
 
 ### Frontend FR Coverage Map
 
-| FR      | Epic   | Description                              |
-| ------- | ------ | ---------------------------------------- |
-| UI-FR-1  | Epic 4 | Send message + streaming response        |
-| UI-FR-2  | Epic 4 | Vertical message list layout             |
-| UI-FR-3  | Epic 4 | Centered → scroll layout                 |
-| UI-FR-4  | Epic 4 | Auto-scroll + pause                      |
-| UI-FR-5  | Epic 5 | Model selector                           |
-| UI-FR-6  | Epic 5 | Thinking effort selector                 |
-| UI-FR-7  | Epic 5 | forwardedProps transmission              |
-| UI-FR-8  | Epic 5 | Reasoning display                        |
-| UI-FR-9  | Epic 5 | Reasoning visual distinction             |
-| UI-FR-10 | Epic 6 | Tool call display                        |
-| UI-FR-11 | Epic 6 | Tool collapse/expand                     |
-| UI-FR-12 | Epic 6 | Multiple tool calls                      |
-| UI-FR-13 | Epic 6 | Interrupt "Continue" button              |
-| UI-FR-14 | Epic 6 | Resume request                           |
-| UI-FR-15 | Epic 6 | New message ≠ resume                     |
-| UI-FR-16 | Epic 4 | Send button                              |
-| UI-FR-17 | Epic 6 | Cancel button                            |
-| UI-FR-18 | Epic 6 | Cancel behavior + Retry                  |
-| UI-FR-19 | Epic 6 | Error display                            |
-| UI-FR-20 | Epic 6 | Errors non-blocking                      |
-| UI-FR-21 | Epic 4 | Activity indicator                       |
-| UI-FR-22 | Epic 6 | Tool in-progress indicator               |
-| UI-FR-23 | Epic 4 | README                                   |
-| UI-FR-24 | All    | README updated each story                |
+| FR       | Epic   | Description                       |
+| -------- | ------ | --------------------------------- |
+| UI-FR-1  | Epic 4 | Send message + streaming response |
+| UI-FR-2  | Epic 4 | Vertical message list layout      |
+| UI-FR-3  | Epic 4 | Centered → scroll layout          |
+| UI-FR-4  | Epic 4 | Auto-scroll + pause               |
+| UI-FR-5  | Epic 5 | Model selector                    |
+| UI-FR-6  | Epic 5 | Thinking effort selector          |
+| UI-FR-7  | Epic 5 | forwardedProps transmission       |
+| UI-FR-8  | Epic 5 | Reasoning display                 |
+| UI-FR-9  | Epic 5 | Reasoning visual distinction      |
+| UI-FR-10 | Epic 6 | Tool call display                 |
+| UI-FR-11 | Epic 6 | Tool collapse/expand              |
+| UI-FR-12 | Epic 6 | Multiple tool calls               |
+| UI-FR-13 | Epic 6 | Interrupt "Continue" button       |
+| UI-FR-14 | Epic 6 | Resume request                    |
+| UI-FR-15 | Epic 6 | New message ≠ resume              |
+| UI-FR-16 | Epic 4 | Send button                       |
+| UI-FR-17 | Epic 6 | Cancel button                     |
+| UI-FR-18 | Epic 6 | Cancel behavior + Retry           |
+| UI-FR-19 | Epic 6 | Error display                     |
+| UI-FR-20 | Epic 6 | Errors non-blocking               |
+| UI-FR-21 | Epic 4 | Activity indicator                |
+| UI-FR-22 | Epic 6 | Tool in-progress indicator        |
+| UI-FR-23 | Epic 4 | README                            |
+| UI-FR-24 | All    | README updated each story         |
 
 ### Frontend Epic List
 
@@ -743,7 +744,7 @@ So that the app no longer depends on CopilotKit's `HttpAgent` for transport.
 **When** a message is sent (POST with `RunAgentInput` body)
 **Then** the client opens an SSE stream via `fetch` with `Content-Type: text/event-stream` response
 **And** each SSE `data:` line is parsed into a typed AG-UI event
-**And** all event types are validated against Zod schemas (RUN_STARTED, TEXT_MESSAGE_*, TOOL_CALL_*, REASONING_*, RUN_FINISHED, RUN_ERROR)
+**And** all event types are validated against Zod schemas (RUN*STARTED, TEXT_MESSAGE*_, TOOL*CALL*_, REASONING\_\*, RUN_FINISHED, RUN_ERROR)
 **And** malformed events are logged and skipped (no crash)
 **And** the client supports cancellation via `AbortController`
 

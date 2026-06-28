@@ -12,6 +12,7 @@ updated: 2026-06-28
 This PRD defines the requirements for `talk-ui`, a React web application that provides a browser-based chat interface to the `talk` backend AG-UI server. It targets a single developer and serves as the foundation for an evolving product that will later incorporate domain-specific interactions (mapping, data visualization). This document covers V1: the conversational chat core.
 
 **Related documents:**
+
 - Backend PRD: `prds/prd-talk-bmad-2026-06-21/prd.md`
 - Backend epics: `planning-artifacts/epics.md`
 
@@ -140,22 +141,22 @@ The application is designed as an extensible shell: V1 delivers the chat core, f
 
 ## 5. Technical Constraints
 
-| Constraint | Value |
-|-----------|-------|
-| Framework | React (via Vite) |
-| Build tool | Vite |
-| Styling | Tailwind CSS + CopilotKit style overrides |
-| Chat SDK | CopilotKit (AG-UI protocol) |
-| Routing | TanStack Router |
-| Data fetching | TanStack Query |
-| Data architecture | Layered: HTTP client (fetch) → React Query hook + Zod validation → Component |
-| Validation | Zod |
-| Package manager | pnpm |
-| Language | TypeScript (strict mode) |
-| Node version | LTS (22+) |
-| Backend URL | `VITE_AGENT_URL` environment variable (default: `http://localhost:8090`) |
-| Repository | `talk-ui` (separate git repo, integrated in VS Code workspace) |
-| Theme | Dark only |
+| Constraint         | Value                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| Framework          | React (via Vite)                                                                                          |
+| Build tool         | Vite                                                                                                      |
+| Styling            | Tailwind CSS + CopilotKit style overrides                                                                 |
+| Chat SDK           | CopilotKit (AG-UI protocol)                                                                               |
+| Routing            | TanStack Router                                                                                           |
+| Data fetching      | TanStack Query                                                                                            |
+| Data architecture  | Layered: HTTP client (fetch) → React Query hook + Zod validation → Component                              |
+| Validation         | Zod                                                                                                       |
+| Package manager    | pnpm                                                                                                      |
+| Language           | TypeScript (strict mode)                                                                                  |
+| Node version       | LTS (22+)                                                                                                 |
+| Backend URL        | `VITE_AGENT_URL` environment variable (default: `http://localhost:8090`)                                  |
+| Repository         | `talk-ui` (separate git repo, integrated in VS Code workspace)                                            |
+| Theme              | Dark only                                                                                                 |
 | CopilotKit styling | Mixed approach: override default CopilotKit styles with targeted Tailwind CSS for non-headless components |
 
 ## 6. Scope — Out of V1
@@ -178,17 +179,18 @@ The last epic replaces CopilotKit's `agents__unsafe_dev_only` transport layer wi
 
 ## 7. Success Metrics
 
-| Metric | Target | Counter-metric |
-|--------|--------|---------------|
-| All backend AG-UI features exercisable from UI | 100% (chat, streaming, reasoning, tools, interrupt, errors) | No feature requires curl/CLI to test |
-| Test coverage | ≥ 80% (target 100%) | No test takes > 5s |
-| Lint | 0 errors, 0 warnings | No rule disabled without justification |
-| Build time (dev) | < 3s hot reload | — |
-| Time to first meaningful paint | < 1s (local, empty state) | — |
+| Metric                                         | Target                                                      | Counter-metric                         |
+| ---------------------------------------------- | ----------------------------------------------------------- | -------------------------------------- |
+| All backend AG-UI features exercisable from UI | 100% (chat, streaming, reasoning, tools, interrupt, errors) | No feature requires curl/CLI to test   |
+| Test coverage                                  | ≥ 80% (target 100%)                                         | No test takes > 5s                     |
+| Lint                                           | 0 errors, 0 warnings                                        | No rule disabled without justification |
+| Build time (dev)                               | < 3s hot reload                                             | —                                      |
+| Time to first meaningful paint                 | < 1s (local, empty state)                                   | —                                      |
 
 ## 8. Integration Pattern (Verified)
 
 CopilotKit is natively built on the AG-UI protocol. Connection to `talk serve` uses:
+
 - `@ag-ui/client` → `HttpAgent({ url: VITE_AGENT_URL })` — handles POST + SSE natively
 - `<CopilotKit agents__unsafe_dev_only={{ "talk": agent }}>` — local dev mode, no runtime needed
 - `useAgent()` hook — exposes `.messages`, `.isRunning`, `.subscribe()` for all AG-UI events
