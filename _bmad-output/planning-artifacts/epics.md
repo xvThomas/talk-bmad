@@ -409,6 +409,7 @@ So that I can organize my conversation history.
 - UI-FR-22: Tool in-progress indicator
 - UI-FR-23: README.md (pnpm-based getting started)
 - UI-FR-24: README updated each story
+- UI-FR-25: Markdown rendering for assistant messages (headings, lists, code blocks with syntax highlighting)
 
 ### Frontend FR Coverage Map
 
@@ -438,13 +439,14 @@ So that I can organize my conversation history.
 | UI-FR-22 | Epic 6 | Tool in-progress indicator        |
 | UI-FR-23 | Epic 4 | README                            |
 | UI-FR-24 | All    | README updated each story         |
+| UI-FR-25 | Epic 4 | Markdown rendering (assistant)    |
 
 ### Frontend Epic List
 
 ### Epic 4: Conversation de base fonctionnelle (talk-ui)
 
 L'utilisateur peut ouvrir l'app web, envoyer un message et recevoir une réponse en streaming.
-**FRs covered:** UI-FR-1, UI-FR-2, UI-FR-3, UI-FR-4, UI-FR-16, UI-FR-21, UI-FR-23
+**FRs covered:** UI-FR-1, UI-FR-2, UI-FR-3, UI-FR-4, UI-FR-16, UI-FR-21, UI-FR-23, UI-FR-25
 
 ### Epic 5: Contrôle du modèle et du raisonnement
 
@@ -547,6 +549,34 @@ So that I know the assistant is actively responding.
 **Given** the user scrolls back to the bottom
 **When** new content arrives
 **Then** auto-scroll resumes
+
+### Story 4.5: Rendu markdown des messages assistant
+
+As an end user,
+I want the assistant's messages to be rendered as rich markdown,
+So that headings, lists, code blocks, and other formatting are readable and visually structured.
+
+**Acceptance Criteria:**
+
+**Given** the assistant sends a response containing markdown syntax (headings, bold, italic, lists, links, inline code, fenced code blocks)
+**When** the message is displayed
+**Then** it is rendered as rich HTML — not raw markdown text
+**And** fenced code blocks include syntax highlighting (language-aware)
+**And** links are clickable and open in a new tab (`target="_blank"`, `rel="noopener noreferrer"`)
+
+**Given** the assistant's response is streaming
+**When** partial markdown arrives (e.g., an incomplete code block)
+**Then** the rendering updates progressively without visual glitches
+**And** incomplete blocks are displayed as plain text until the closing fence arrives
+
+**Given** the message contains no markdown
+**When** the message is displayed
+**Then** it renders as plain text (no blank wrapper elements)
+
+**Technical notes:**
+- Use `react-markdown` with `remark-gfm` (tables, strikethrough, task lists) and `rehype-highlight` (syntax highlighting)
+- Apply Tailwind `prose` class (`@tailwindcss/typography`) for consistent markdown styling in dark theme
+- The same renderer should be reusable for reasoning blocks (Epic 5) and tool result display (Epic 6)
 
 ---
 

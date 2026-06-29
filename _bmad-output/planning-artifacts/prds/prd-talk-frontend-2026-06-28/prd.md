@@ -44,6 +44,7 @@ The application is designed as an extensible shell: V1 delivers the chat core, f
 - **FR-2:** Display the conversation as a vertical message list: user messages right-aligned, assistant messages left-aligned.
 - **FR-3:** Chat layout centered horizontally and vertically when the conversation is empty; transitions to scroll-down layout with input fixed at bottom once messages exist.
 - **FR-4:** Auto-scroll to latest message during streaming; pause auto-scroll if user scrolls up.
+- **FR-25:** Assistant messages are rendered as rich markdown (headings, bold, italic, lists, links, inline code, fenced code blocks with syntax highlighting). Raw markdown source is never displayed to the user.
 
 ### 3.2 Model & Thinking Selection
 
