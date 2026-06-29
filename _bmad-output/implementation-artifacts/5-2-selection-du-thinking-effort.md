@@ -74,6 +74,7 @@ so that I can decide between faster responses or deeper reasoning.
 ### Component Pattern (from Story 5.1)
 
 The ThinkingEffortSelector MUST follow the exact same dropdown pattern established in ModelSelector:
+
 - Custom button + `<ul role="listbox">` + `<li role="option">`
 - `useState` for `open`, `dropUp`, `focusedIndex`
 - `useRef` for `containerRef`, `listRef`
@@ -86,6 +87,7 @@ The ThinkingEffortSelector MUST follow the exact same dropdown pattern establish
 ### UI Layout in ChatView
 
 Current layout inside the `chatBox` div:
+
 ```
 ┌─────────────────────────────────────┐
 │ [textarea]                 [send▶]  │  ← ChatInput row
@@ -97,15 +99,15 @@ The ThinkingEffortSelector sits LEFT of ModelSelector in the same `flex justify-
 
 ### Thinking Model Mapping (from PRD FR-5)
 
-| Model | Thinking Support | PRD Type |
-|-------|-----------------|----------|
-| haiku-4.5 | ✅ | budget |
-| sonnet-4.6 | ✅ | budget |
-| opus-4.6 | ✅ | adaptive |
-| o4-mini | ✅ | effort |
-| gpt-5.4 | ❌ | — |
-| mistral-small | ❌ | — |
-| agent | ❌ | — |
+| Model         | Thinking Support | PRD Type |
+| ------------- | ---------------- | -------- |
+| haiku-4.5     | ✅               | budget   |
+| sonnet-4.6    | ✅               | budget   |
+| opus-4.6      | ✅               | adaptive |
+| o4-mini       | ✅               | effort   |
+| gpt-5.4       | ❌               | —        |
+| mistral-small | ❌               | —        |
+| agent         | ❌               | —        |
 
 For this story, the thinking "type" distinction (budget/adaptive/effort) is NOT relevant to the UI. All thinking-capable models get the same selector with the same options. The backend handles type-specific behavior.
 
@@ -161,16 +163,18 @@ Claude Opus 4.6 (GitHub Copilot)
 
 ### Change Log
 
-| Date | Change | Reason |
-|------|--------|--------|
+| Date       | Change                                           | Reason                        |
+| ---------- | ------------------------------------------------ | ----------------------------- |
 | 2026-06-29 | Implemented thinking effort selector (Tasks 1-4) | Story 5.2 full implementation |
 
 ### File List
 
 **NEW:**
+
 - `src/components/ThinkingEffortSelector.tsx` — Custom dropdown component (keyboard nav, a11y, same pattern as ModelSelector)
 
 **UPDATE:**
+
 - `src/config/models.ts` — Added THINKING_EFFORTS, ThinkingEffort type, DEFAULT_THINKING_EFFORT, THINKING_MODELS set, supportsThinking() helper
 - `src/components/ChatView.tsx` — Added thinkingEffort state, conditional rendering, reset on model switch, conditional forwarding in forwardedProps
 - `src/__tests__/models.test.ts` — Added 4 tests for thinking effort exports and supportsThinking helper
