@@ -1,6 +1,6 @@
 # Story 4.1: Scaffold projet et CI
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -23,58 +23,62 @@ So that I have a solid foundation to build features on.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Scaffold Vite React-TS project (AC: #1, #2)
-  - [ ] Run `pnpm create vite@latest . --template react-ts`
-  - [ ] Set `"strict": true` in tsconfig.json (should be default)
-  - [ ] Set `"target": "ES2022"`, `"module": "ESNext"`, `"moduleResolution": "bundler"`
-  - [ ] Add `.nvmrc` with `22`
-  - [ ] Add `"engines": { "node": ">=22.12.0" }` in package.json
-  - [ ] Verify `pnpm build` succeeds
-- [ ] Task 2: Configure Tailwind CSS dark-only (AC: #8)
-  - [ ] Install `tailwindcss @tailwindcss/vite`
-  - [ ] Add Tailwind Vite plugin to `vite.config.ts`
-  - [ ] Create `src/index.css` with `@import "tailwindcss"`
-  - [ ] Set dark theme as default (use `darkMode: "class"` or CSS variables scoped to dark)
-  - [ ] Add `class="dark"` on root `<html>` element
-  - [ ] Set dark background + text color as base styles
-- [ ] Task 3: Configure ESLint flat config (AC: #3, #5)
-  - [ ] Install `eslint`, `typescript-eslint`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-config-prettier`
-  - [ ] Create `eslint.config.ts` with:
-    - `tseslint.configs.strict` (type-checked)
-    - React + React Hooks plugins
-    - `eslint-config-prettier` to disable formatting rules
-    - Parser pointed at `tsconfig.json`
-  - [ ] Add `"lint": "eslint ."` and `"lint:fix": "eslint . --fix"` scripts
-  - [ ] Verify `pnpm lint` passes on scaffold code
-- [ ] Task 4: Configure Prettier (AC: #4, #5)
-  - [ ] Install `prettier`
-  - [ ] Create `.prettierrc` (or `prettier.config.js`) with project conventions (semi, singleQuote, trailingComma, printWidth)
-  - [ ] Create `.prettierignore` (dist, coverage, pnpm-lock.yaml)
-  - [ ] Add `"format": "prettier --check ."` and `"format:fix": "prettier --write ."` scripts
-  - [ ] Verify no ESLint/Prettier conflicts
-- [ ] Task 5: Configure Vitest + Testing Library (AC: #6)
-  - [ ] Install `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`
-  - [ ] Add Vitest config in `vite.config.ts` (or `vitest.config.ts`)
-  - [ ] Configure jsdom environment, setup file for `@testing-library/jest-dom`
-  - [ ] Create `src/__tests__/app.test.tsx` placeholder test
-  - [ ] Add `"test": "vitest run"`, `"test:watch": "vitest"`, `"test:coverage": "vitest run --coverage"` scripts
-  - [ ] Verify `pnpm test` passes
-- [ ] Task 6: Configure TanStack Router (AC: #7)
-  - [ ] Install `@tanstack/react-router`, `@tanstack/router-devtools` (dev)
-  - [ ] Create file-based route structure: `src/routes/__root.tsx`, `src/routes/index.tsx`
-  - [ ] Configure router in `src/main.tsx`
-  - [ ] Single route `/` renders a placeholder App component
-- [ ] Task 7: GitHub Actions CI (AC: #9)
-  - [ ] Create `.github/workflows/ci.yml`
-  - [ ] Trigger: push + PR to `main`
-  - [ ] Steps: checkout → setup Node 22 → pnpm install → `pnpm build` → `pnpm lint` → `pnpm test`
-  - [ ] Use `pnpm/action-setup` for pnpm
-  - [ ] Cache pnpm store for speed
-- [ ] Task 8: README.md (AC: #10)
-  - [ ] Write prerequisites section (Node 22+, pnpm 9+)
-  - [ ] Document: `pnpm install`, `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm test`
-  - [ ] Include `VITE_AGENT_URL` env var documentation (for next story)
-  - [ ] Keep it concise — getting started in < 1 minute
+- [x] Task 1: Scaffold Vite React-TS project (AC: #1, #2)
+  - [x] Run `pnpm create vite@latest . --template react-ts`
+  - [x] Set `"strict": true` in tsconfig.json (should be default)
+  - [x] Set `"target": "ES2022"`, `"module": "ESNext"`, `"moduleResolution": "bundler"`
+  - [x] Add `.nvmrc` with `22`
+  - [x] Add `"engines": { "node": ">=22.12.0" }` in package.json
+  - [x] Verify `pnpm build` succeeds
+- [x] Task 2: Configure Tailwind CSS dark-only (AC: #8)
+  - [x] Install `tailwindcss @tailwindcss/vite`
+  - [x] Add Tailwind Vite plugin to `vite.config.ts`
+  - [x] Create `src/index.css` with `@import "tailwindcss"`
+  - [x] Set dark theme as default (use `darkMode: "class"` or CSS variables scoped to dark)
+  - [x] Add `class="dark"` on root `<html>` element
+  - [x] Set dark background + text color as base styles
+- [x] Task 3: Configure ESLint flat config (AC: #3, #5)
+  - [x] Install `eslint`, `typescript-eslint`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-config-prettier`
+  - [x] Create `eslint.config.ts` with:
+  - [x]    - `tseslint.configs.strict` (type-checked)
+  - [x]    - React + React Hooks plugins
+  - [x]    - `eslint-config-prettier` to disable formatting rules
+  - [x]    - Parser pointed at `tsconfig.json`
+  - [x] Add `"lint": "eslint ."` and `"lint:fix": "eslint . --fix"` scripts
+  - [x] Verify `pnpm lint` passes on scaffold code
+- [x] Task 4: Configure Prettier (AC: #4, #5)
+  - [x] Install `prettier`
+  - [x] Create `.prettierrc` (or `prettier.config.js`) with project conventions (semi, singleQuote, trailingComma, printWidth)
+  - [x] Create `.prettierignore` (dist, coverage, pnpm-lock.yaml)
+  - [x] Add `"format": "prettier --check ."` and `"format:fix": "prettier --write ."` scripts
+  - [x] Verify no ESLint/Prettier conflicts
+- [x] Task 5: Configure Vitest + Testing Library (AC: #6)
+  - [x] Install `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`
+  - [x] Add Vitest config in `vite.config.ts` (or `vitest.config.ts`)
+  - [x] Configure jsdom environment, setup file for `@testing-library/jest-dom`
+  - [x] Create `src/__tests__/app.test.tsx` placeholder test
+  - [x] Add `"test": "vitest run"`, `"test:watch": "vitest"`, `"test:coverage": "vitest run --coverage"` scripts
+  - [x] Verify `pnpm test` passes
+- [x] Task 6: Configure TanStack Router (AC: #7)
+  - [x] Install `@tanstack/react-router`, `@tanstack/router-devtools` (dev)
+  - [x] Create file-based route structure: `src/routes/__root.tsx`, `src/routes/index.tsx`
+  - [x] Configure router in `src/main.tsx`
+  - [x] Single route `/` renders a placeholder App component
+- [x] Task 7: GitHub Actions CI (AC: #9)
+  - [x] Create `.github/workflows/ci.yml`
+  - [x] Trigger: push + PR to `main`
+  - [x] Steps: checkout → setup Node 22 → pnpm install → `pnpm build` → `pnpm lint` → `pnpm test`
+  - [x] Use `pnpm/action-setup` for pnpm
+  - [x] Cache pnpm store for speed
+- [x] Task 8: README.md (AC: #10)
+  - [x] Write prerequisites section (Node 22+, pnpm 9+)
+  - [x] Document: `pnpm install`, `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm test`
+  - [x] Include `VITE_AGENT_URL` env var documentation (for next story)
+  - [x] Keep it concise — getting started in < 1 minute
+
+### Review Findings
+
+- No findings mapped to this story from the cross-story code review.
 
 ## Dev Notes
 

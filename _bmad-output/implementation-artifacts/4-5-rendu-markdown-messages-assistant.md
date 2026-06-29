@@ -47,6 +47,10 @@ so that headings, lists, code blocks, and other formatting are readable and visu
   - [x] Test `MessageBubble`: user messages remain plain text
 - [x] Task 6: Update README if needed (AC: #5) — no content change needed
 
+### Review Findings
+
+- No findings mapped to this story from the cross-story code review.
+
 ## Dev Notes
 
 ### Library Versions & Rationale

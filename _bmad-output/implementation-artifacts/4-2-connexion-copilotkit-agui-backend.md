@@ -1,6 +1,6 @@
 # Story 4.2: Connexion CopilotKit + AG-UI backend
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,30 +18,35 @@ So that messages can flow between frontend and backend.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Install CopilotKit + AG-UI + Zod dependencies (AC: #1, #2)
-  - [ ] `pnpm add @copilotkit/react-core @ag-ui/client zod`
-  - [ ] Verify no peer dependency conflicts
-- [ ] Task 2: Create agent configuration module with Zod validation (AC: #3, #4)
-  - [ ] Create `src/config/env.ts` — Zod schema for `VITE_AGENT_URL`, parse at import time
-  - [ ] Export typed `config` object with validated `agentUrl`
-  - [ ] Throw descriptive error if validation fails (developer-facing)
-- [ ] Task 3: Create CopilotKit agent setup (AC: #1, #4)
-  - [ ] Create `src/config/agent.ts` — instantiate `HttpAgent` using validated `config.agentUrl`
-  - [ ] Export a typed `agents` map: `Record<string, AbstractAgent>`
-  - [ ] Agent key must be `"talk"`
-- [ ] Task 4: Wrap app with CopilotKit provider (AC: #2)
-  - [ ] Update `src/routes/__root.tsx` to wrap `<Outlet />` with `<CopilotKit agents__unsafe_dev_only={agents}>`
-  - [ ] Import from `@copilotkit/react-core/v2`
-  - [ ] No `runtimeUrl` or `publicApiKey` needed (dev mode)
-- [ ] Task 5: Write tests (AC: #5)
-  - [ ] Test `src/config/env.ts` — valid URL passes, invalid URL throws
-  - [ ] Test `src/config/agent.ts` — returns HttpAgent with correct URL
-  - [ ] Test CopilotKit provider renders without crashing
-  - [ ] Verify mocking strategy for `import.meta.env`
-- [ ] Task 6: Update README (AC: #5)
-  - [ ] Document `VITE_AGENT_URL` as required env var
-  - [ ] Add "Running with backend" section
-  - [ ] Note that `talk serve` must be running for full functionality
+- [x] Task 1: Install CopilotKit + AG-UI + Zod dependencies (AC: #1, #2)
+  - [x] `pnpm add @copilotkit/react-core @ag-ui/client zod`
+  - [x] Verify no peer dependency conflicts
+- [x] Task 2: Create agent configuration module with Zod validation (AC: #3, #4)
+  - [x] Create `src/config/env.ts` — Zod schema for `VITE_AGENT_URL`, parse at import time
+  - [x] Export typed `config` object with validated `agentUrl`
+  - [x] Throw descriptive error if validation fails (developer-facing)
+- [x] Task 3: Create CopilotKit agent setup (AC: #1, #4)
+  - [x] Create `src/config/agent.ts` — instantiate `HttpAgent` using validated `config.agentUrl`
+  - [x] Export a typed `agents` map: `Record<string, AbstractAgent>`
+  - [x] Agent key must be `"talk"`
+- [x] Task 4: Wrap app with CopilotKit provider (AC: #2)
+  - [x] Update `src/routes/__root.tsx` to wrap `<Outlet />` with `<CopilotKit agents__unsafe_dev_only={agents}>`
+  - [x] Import from `@copilotkit/react-core/v2`
+  - [x] No `runtimeUrl` or `publicApiKey` needed (dev mode)
+- [x] Task 5: Write tests (AC: #5)
+  - [x] Test `src/config/env.ts` — valid URL passes, invalid URL throws
+  - [x] Test `src/config/agent.ts` — returns HttpAgent with correct URL
+  - [x] Test CopilotKit provider renders without crashing
+  - [x] Verify mocking strategy for `import.meta.env`
+- [x] Task 6: Update README (AC: #5)
+  - [x] Document `VITE_AGENT_URL` as required env var
+  - [x] Add "Running with backend" section
+  - [x] Note that `talk serve` must be running for full functionality
+
+### Review Findings
+
+- [x] [Review][Patch] Normalize `VITE_AGENT_URL` before appending `/agent` to avoid double-slash URLs when env includes trailing `/` [src/config/agent.ts:4]
+- [x] [Review][Defer] Duplicate error paths between `CopilotKit onError` and `copilotkit.subscribe({ onError })` can overwrite messages [src/routes/__root.tsx:30] — deferred, pre-existing
 
 ## Dev Notes
 

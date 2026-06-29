@@ -57,6 +57,16 @@ So that I can converse with the assistant.
   - [x] Mock `useAgent()` and `useCopilotKit()` for component tests
 - [x] Task 7: README skipped (no content change needed)
 
+### Review Findings
+
+- [x] [Review][Patch] Handle `runAgent` promise rejection in `handleSend` to prevent unhandled rejections and surface errors in UI [src/components/ChatView.tsx:87]
+- [x] [Review][Patch] Add a runtime guard `if (agent.isRunning) return;` in `handleSend` to avoid fast double-submit race before disabled state re-renders [src/components/ChatView.tsx:79]
+- [x] [Review][Patch] Ensure non-empty error fallback to avoid blank conversation layout when error message is an empty string [src/routes/__root.tsx:16]
+- [x] [Review][Patch] Add accessible live error semantics (`role="alert"`) on the error bubble [src/components/ChatView.tsx:122]
+- [x] [Review][Patch] Replace unsafe `as` casts by message normalization in `ChatView` and defensive rendering for non-text content in `MessageBubble` [src/components/ChatView.tsx:18]
+- [x] [Review][Defer] Hardcoded model `haiku-4.5` should be configurable via app config [src/components/ChatView.tsx:41] — deferred, pre-existing
+- [x] [Review][Defer] `visibleMessages.map(...)` has no upper bound/virtualization for long sessions [src/components/ChatView.tsx:54] — deferred, pre-existing
+
 ## Dev Notes
 
 ### CopilotKit Headless API (v2)
@@ -100,6 +110,16 @@ interface Message {
   toolCallId?: string; // for tool messages
 }
 ```
+
+### Non-Text Message Behavior
+
+- ChatView normalizes incoming agent messages before rendering.
+- Only `user` and `assistant` roles are rendered in this story scope.
+- Empty string content is ignored.
+- For non-text content (object payloads), `MessageBubble` renders a safe placeholder instead of relying on casts.
+- Current placeholder format:
+  - `Non-text content is not displayed yet.`
+  - `<type> content is not displayed yet.` (for payloads with a `type` field, e.g. `video`)
 
 ### Layout Architecture
 

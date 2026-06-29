@@ -42,6 +42,10 @@ So that I know the assistant is actively responding.
 - [x] Task 5: Verify streaming works end-to-end (AC: #1)
   - [x] Verify no regressions with `pnpm build && pnpm lint && pnpm test`
 
+### Review Findings
+
+- No findings mapped to this story from the cross-story code review.
+
 ## Dev Notes
 
 ### Streaming Is Already Working
