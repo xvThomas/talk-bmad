@@ -1,6 +1,10 @@
+---
+baseline_commit: 4489ad464f9a4e5ff6bf7f7ebd1ddcfdbbdaa311
+---
+
 # Story 4.5: Rendu markdown des messages assistant
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,30 +22,30 @@ so that headings, lists, code blocks, and other formatting are readable and visu
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Install dependencies (AC: #1, #4)
-  - [ ] `pnpm add react-markdown remark-gfm rehype-highlight`
-  - [ ] `pnpm add -D @tailwindcss/typography`
-  - [ ] Add `highlight.js` CSS theme import for syntax highlighting (dark theme)
-- [ ] Task 2: Configure `@tailwindcss/typography` plugin (AC: #1)
-  - [ ] Add `@plugin "@tailwindcss/typography"` to `src/index.css`
-  - [ ] Add `prose-invert` overrides for dark theme compatibility with existing color scheme
-- [ ] Task 3: Create `MarkdownContent` component (AC: #1, #2, #3, #4)
-  - [ ] Create `src/components/MarkdownContent.tsx`
-  - [ ] Wrap `react-markdown` with `remarkGfm` + `rehypeHighlight` plugins
-  - [ ] Override `a` component to add `target="_blank"` and `rel="noopener noreferrer"`
-  - [ ] Apply `prose prose-invert prose-sm max-w-none` classes
-  - [ ] Handle empty/whitespace-only content (render nothing)
-- [ ] Task 4: Update `MessageBubble` to use `MarkdownContent` (AC: #1, #2, #3)
-  - [ ] Replace `<p className="whitespace-pre-wrap break-words">{content}</p>` with `<MarkdownContent content={content} />` for assistant messages
-  - [ ] Keep user messages as plain text (`whitespace-pre-wrap`)
-  - [ ] Update `MessageBubbleProps` if needed
-- [ ] Task 5: Write tests (AC: #5)
-  - [ ] Test `MarkdownContent`: renders headings, bold, italic, lists, code blocks, links, tables
-  - [ ] Test `MarkdownContent`: links have `target="_blank"` and `rel="noopener noreferrer"`
-  - [ ] Test `MarkdownContent`: empty content renders nothing
-  - [ ] Test `MessageBubble`: assistant messages use markdown rendering
-  - [ ] Test `MessageBubble`: user messages remain plain text
-- [ ] Task 6: Update README if needed (AC: #5)
+- [x] Task 1: Install dependencies (AC: #1, #4)
+  - [x] `pnpm add react-markdown remark-gfm rehype-highlight`
+  - [x] `pnpm add -D @tailwindcss/typography`
+  - [x] Add `highlight.js` CSS theme import for syntax highlighting (dark theme)
+- [x] Task 2: Configure `@tailwindcss/typography` plugin (AC: #1)
+  - [x] Add `@plugin "@tailwindcss/typography"` to `src/index.css`
+  - [x] Add `prose-invert` overrides for dark theme compatibility with existing color scheme
+- [x] Task 3: Create `MarkdownContent` component (AC: #1, #2, #3, #4)
+  - [x] Create `src/components/MarkdownContent.tsx`
+  - [x] Wrap `react-markdown` with `remarkGfm` + `rehypeHighlight` plugins
+  - [x] Override `a` component to add `target="_blank"` and `rel="noopener noreferrer"`
+  - [x] Apply `prose prose-invert prose-sm max-w-none` classes
+  - [x] Handle empty/whitespace-only content (render nothing)
+- [x] Task 4: Update `MessageBubble` to use `MarkdownContent` (AC: #1, #2, #3)
+  - [x] Replace `<p className="whitespace-pre-wrap break-words">{content}</p>` with `<MarkdownContent content={content} />` for assistant messages
+  - [x] Keep user messages as plain text (`whitespace-pre-wrap`)
+  - [x] Update `MessageBubbleProps` if needed
+- [x] Task 5: Write tests (AC: #5)
+  - [x] Test `MarkdownContent`: renders headings, bold, italic, lists, code blocks, links, tables
+  - [x] Test `MarkdownContent`: links have `target="_blank"` and `rel="noopener noreferrer"`
+  - [x] Test `MarkdownContent`: empty content renders nothing
+  - [x] Test `MessageBubble`: assistant messages use markdown rendering
+  - [x] Test `MessageBubble`: user messages remain plain text
+- [x] Task 6: Update README if needed (AC: #5) — no content change needed
 
 ## Dev Notes
 
@@ -280,8 +284,39 @@ From Story 4.3:
 
 ### Agent Model Used
 
+Claude Opus 4.6 (copilot)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Installed `react-markdown@10.1.0`, `remark-gfm@4.0.1`, `rehype-highlight@7.0.2` as runtime deps
+- Installed `@tailwindcss/typography@0.5.20` and `highlight.js@11.11.1` as dev deps
+- Configured `@tailwindcss/typography` via `@plugin` directive in index.css (Tailwind v4 pattern)
+- Imported `highlight.js/styles/github-dark.min.css` for syntax highlighting theme
+- Created `MarkdownContent` component: wraps `react-markdown` with `remarkGfm` + `rehypeHighlight`, applies `prose prose-invert prose-sm max-w-none prose-pre:overflow-x-auto`
+- Links rendered with `target="_blank"` and `rel="noopener noreferrer"` via components override
+- Updated `MessageBubble`: assistant messages render via `MarkdownContent`, user messages stay plain text
+- Created 10 tests in `markdown-content.test.tsx` covering: headings, bold/italic, code blocks, lists, links (with security attrs), GFM tables, inline code, empty content, plain text, strikethrough
+- Added 2 tests to `message-bubble.test.tsx`: assistant markdown rendering + user plain text
+- Fixed pre-existing mock issue: added `subscribe` to `mockCopilotKit` in `chat-view.test.tsx` and `app.test.tsx`
+- Fixed `message-bubble.test.tsx` "muted background" test to account for MarkdownContent DOM wrapper
+- All 37 tests pass, build OK, lint OK
+- `pnpm format` has pre-existing warnings on ALL files (not caused by this story)
+- `rehype-highlight` mocked in tests (`vi.mock`) since `lowlight` doesn't run well in jsdom
+
+### Change Log
+
+- 2026-06-29: Story 4.5 implemented — markdown rendering for assistant messages
+
 ### File List
+
+- src/components/MarkdownContent.tsx (NEW)
+- src/components/MessageBubble.tsx (UPDATE)
+- src/index.css (UPDATE)
+- src/__tests__/markdown-content.test.tsx (NEW)
+- src/__tests__/message-bubble.test.tsx (UPDATE)
+- src/__tests__/chat-view.test.tsx (UPDATE — fix pre-existing mock)
+- src/__tests__/app.test.tsx (UPDATE — fix pre-existing mock)
+- package.json (UPDATE — new dependencies)
+- pnpm-lock.yaml (UPDATE)
