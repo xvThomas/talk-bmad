@@ -1,6 +1,10 @@
+---
+baseline_commit: cd24f415e622eadd767ec6aadbcd73be64168ecc
+---
+
 # Story 5.2: Sélection du thinking effort
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -22,34 +26,34 @@ so that I can decide between faster responses or deeper reasoning.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend model catalog with thinking metadata (AC: #1, #2)
-  - [ ] 1.1 Add `THINKING_MODELS` set or `supportsThinking` mapping to `src/config/models.ts`
-  - [ ] 1.2 Add `THINKING_EFFORTS` const array and `ThinkingEffort` type with Zod schema
-  - [ ] 1.3 Add `DEFAULT_THINKING_EFFORT` constant (`"off"`)
-  - [ ] 1.4 Export `supportsThinking(model: ModelAlias): boolean` helper
-  - [ ] 1.5 Add unit tests in `src/__tests__/models.test.ts`
+- [x] Task 1: Extend model catalog with thinking metadata (AC: #1, #2)
+  - [x] 1.1 Add `THINKING_MODELS` set or `supportsThinking` mapping to `src/config/models.ts`
+  - [x] 1.2 Add `THINKING_EFFORTS` const array and `ThinkingEffort` type with Zod schema
+  - [x] 1.3 Add `DEFAULT_THINKING_EFFORT` constant (`"off"`)
+  - [x] 1.4 Export `supportsThinking(model: ModelAlias): boolean` helper
+  - [x] 1.5 Add unit tests in `src/__tests__/models.test.ts`
 
-- [ ] Task 2: Create ThinkingEffortSelector component (AC: #1)
-  - [ ] 2.1 Create `src/components/ThinkingEffortSelector.tsx` — same custom dropdown pattern as ModelSelector
-  - [ ] 2.2 Props: `value: ThinkingEffort`, `onChange: (effort: ThinkingEffort) => void`, `disabled?: boolean`
-  - [ ] 2.3 Keyboard navigation (ArrowUp/Down/Enter/Escape), click-outside close, dropUp detection
-  - [ ] 2.4 Aria label `"Effort de réflexion"`, `role="listbox"` with `role="option"` items
-  - [ ] 2.5 Same styling conventions as ModelSelector (border-white/15, bg-white/5, text-[11px], etc.)
+- [x] Task 2: Create ThinkingEffortSelector component (AC: #1)
+  - [x] 2.1 Create `src/components/ThinkingEffortSelector.tsx` — same custom dropdown pattern as ModelSelector
+  - [x] 2.2 Props: `value: ThinkingEffort`, `onChange: (effort: ThinkingEffort) => void`, `disabled?: boolean`
+  - [x] 2.3 Keyboard navigation (ArrowUp/Down/Enter/Escape), click-outside close, dropUp detection
+  - [x] 2.4 Aria label `"Effort de réflexion"`, `role="listbox"` with `role="option"` items
+  - [x] 2.5 Same styling conventions as ModelSelector (border-white/15, bg-white/5, text-[11px], etc.)
 
-- [ ] Task 3: Integrate into ChatView (AC: #1, #2, #3, #4, #5)
-  - [ ] 3.1 Add `thinkingEffort` state (default: `DEFAULT_THINKING_EFFORT`)
-  - [ ] 3.2 Conditionally render ThinkingEffortSelector next to ModelSelector when `supportsThinking(selectedModel)`
-  - [ ] 3.3 Reset `thinkingEffort` to `"off"` in `handleModelChange` when new model doesn't support thinking
-  - [ ] 3.4 Update `handleSend`: include `thinkingEffort` in `forwardedProps` only when value ≠ `"off"` AND model supports thinking
-  - [ ] 3.5 Pass `disabled={agent.isRunning}` to ThinkingEffortSelector
+- [x] Task 3: Integrate into ChatView (AC: #1, #2, #3, #4, #5)
+  - [x] 3.1 Add `thinkingEffort` state (default: `DEFAULT_THINKING_EFFORT`)
+  - [x] 3.2 Conditionally render ThinkingEffortSelector next to ModelSelector when `supportsThinking(selectedModel)`
+  - [x] 3.3 Reset `thinkingEffort` to `"off"` in `handleModelChange` when new model doesn't support thinking
+  - [x] 3.4 Update `handleSend`: include `thinkingEffort` in `forwardedProps` only when value ≠ `"off"` AND model supports thinking
+  - [x] 3.5 Pass `disabled={agent.isRunning}` to ThinkingEffortSelector
 
-- [ ] Task 4: Write integration tests (AC: all)
-  - [ ] 4.1 Update `src/__tests__/chat-view.test.tsx` — test thinking selector visibility based on model
-  - [ ] 4.2 Test thinking effort forwarded in forwardedProps when effort ≠ off
-  - [ ] 4.3 Test thinkingEffort omitted when effort is "off"
-  - [ ] 4.4 Test thinkingEffort omitted when model doesn't support thinking
-  - [ ] 4.5 Test selector reset to "off" on model switch to non-thinking model
-  - [ ] 4.6 Test selector disabled during agent.isRunning
+- [x] Task 4: Write integration tests (AC: all)
+  - [x] 4.1 Update `src/__tests__/chat-view.test.tsx` — test thinking selector visibility based on model
+  - [x] 4.2 Test thinking effort forwarded in forwardedProps when effort ≠ off
+  - [x] 4.3 Test thinkingEffort omitted when effort is "off"
+  - [x] 4.4 Test thinkingEffort omitted when model doesn't support thinking
+  - [x] 4.5 Test selector reset to "off" on model switch to non-thinking model
+  - [x] 4.6 Test selector disabled during agent.isRunning
 
 ## Dev Notes
 
@@ -146,24 +150,28 @@ For this story, the thinking "type" distinction (budget/adaptive/effort) is NOT 
 
 ### Agent Model Used
 
-(to be filled by dev agent)
+Claude Opus 4.6 (GitHub Copilot)
 
 ### Completion Notes List
 
-(to be filled by dev agent)
+- Task 1: Extended `src/config/models.ts` with `THINKING_EFFORTS` const array, `ThinkingEffort` Zod type, `DEFAULT_THINKING_EFFORT` ("off"), `THINKING_MODELS` private set, and `supportsThinking()` helper. 4 new unit tests added.
+- Task 2: Created `ThinkingEffortSelector.tsx` following exact same dropdown pattern as ModelSelector (custom button + listbox, keyboard nav, click-outside, dropUp detection, same styling).
+- Task 3: Integrated into ChatView — added `thinkingEffort` state, conditional rendering based on `supportsThinking()`, reset on model switch, conditional forwarding (omit when "off").
+- Task 4: Added 7 integration tests covering all ACs: visibility toggle, effort forwarding, omission when off, omission for non-thinking models, reset on model switch, disabled state.
 
 ### Change Log
 
 | Date | Change | Reason |
 |------|--------|--------|
+| 2026-06-29 | Implemented thinking effort selector (Tasks 1-4) | Story 5.2 full implementation |
 
 ### File List
 
 **NEW:**
-- `src/components/ThinkingEffortSelector.tsx`
+- `src/components/ThinkingEffortSelector.tsx` — Custom dropdown component (keyboard nav, a11y, same pattern as ModelSelector)
 
 **UPDATE:**
-- `src/config/models.ts` — Add thinking metadata, ThinkingEffort type, supportsThinking helper
-- `src/components/ChatView.tsx` — Add thinkingEffort state, conditional rendering, forwarding logic
-- `src/__tests__/models.test.ts` — Tests for new exports
-- `src/__tests__/chat-view.test.tsx` — Integration tests for thinking selector behavior
+- `src/config/models.ts` — Added THINKING_EFFORTS, ThinkingEffort type, DEFAULT_THINKING_EFFORT, THINKING_MODELS set, supportsThinking() helper
+- `src/components/ChatView.tsx` — Added thinkingEffort state, conditional rendering, reset on model switch, conditional forwarding in forwardedProps
+- `src/__tests__/models.test.ts` — Added 4 tests for thinking effort exports and supportsThinking helper
+- `src/__tests__/chat-view.test.tsx` — Added 7 integration tests for thinking selector behavior
