@@ -574,6 +574,7 @@ So that headings, lists, code blocks, and other formatting are readable and visu
 **Then** it renders as plain text (no blank wrapper elements)
 
 **Technical notes:**
+
 - Use `react-markdown` with `remark-gfm` (tables, strikethrough, task lists) and `rehype-highlight` (syntax highlighting)
 - Apply Tailwind `prose` class (`@tailwindcss/typography`) for consistent markdown styling in dark theme
 - The same renderer should be reusable for reasoning blocks (Epic 5) and tool result display (Epic 6)
@@ -712,6 +713,27 @@ So that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 **Given** future migration away from `HttpAgent`
 **When** the transport implementation changes in Epic 7
 **Then** presentation components require minimal or no changes thanks to the UI context boundary
+
+**Given** a tool call has started and no final assistant message has been emitted yet
+**When** the UI receives tool-call events
+**Then** the corresponding tool item is rendered immediately in the conversation
+**And** the item is expandable/clickable while still in progress
+**And** partial args/result content is visible as soon as available
+
+**Given** tool-call events arrive before the final assistant completion event
+**When** state is reconciled in the UI context
+**Then** rendering does not wait for final assistant completion to expose tool details
+**And** final assistant completion only transitions run status, without gating tool item interactivity
+
+**Given** a user wants to reduce visual noise in the conversation flow
+**When** they toggle the Tools selector from `Show` to `Hide`
+**Then** `tool-call` rows are hidden from the message list
+**And** non-tool messages remain visible and unchanged
+
+**Given** tool rows are hidden via the Tools selector
+**When** the user toggles back to `Show`
+**Then** tool rows are rendered again immediately using current normalized state
+**And** no new backend request is triggered by this display toggle
 
 ### Story 6.2: Interrupt max-iterations et bouton Continue
 

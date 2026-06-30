@@ -29,6 +29,27 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
    **When** the transport implementation changes in Epic 7
    **Then** presentation components require minimal or no changes thanks to the UI context boundary
 
+5. **Given** a tool call has started and no final assistant message has been emitted yet
+   **When** the UI receives tool-call events
+   **Then** the corresponding tool item is rendered immediately in the conversation
+   **And** the item is expandable/clickable while still in progress
+   **And** partial args/result content is visible as soon as available
+
+6. **Given** tool-call events arrive before the final assistant completion event
+   **When** state is reconciled in the UI context
+   **Then** rendering does not wait for final assistant completion to expose tool details
+   **And** final assistant completion only transitions run status, without gating tool item interactivity
+
+7. **Given** a user wants to reduce visual noise in the conversation flow
+   **When** they toggle the Tools selector from `Show` to `Hide`
+   **Then** `tool-call` rows are hidden from the message list
+   **And** non-tool messages (`user`, `assistant`, `reasoning`, `error/activity`) remain visible and unchanged
+
+8. **Given** tool rows are hidden via the Tools selector
+   **When** the user toggles back to `Show`
+   **Then** tool rows are rendered again immediately using current normalized state
+   **And** no new backend request is triggered by this display toggle
+
 ## Tasks / Subtasks
 
 - [ ] Task 1: Introduce a dedicated chat UI context provider (AC: #1, #2, #4)
@@ -45,6 +66,7 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
     - `sendMessage(content)`
     - model/thinking state + setters
   - [ ] 1.4 Keep all user-visible behavior identical to current implementation
+  - [ ] 1.5 Add per-tool incremental state projection in the provider (`pending|running|done|error`) so presentation can render tool rows before assistant final completion (AC: #5, #6)
 
 - [ ] Task 2: Refactor `ChatView` to presentation composition (AC: #1, #2)
   - [ ] 2.1 Replace direct `useAgent` / `useCopilotKit` calls in `ChatView` with `useChatUIContext`
@@ -54,6 +76,9 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
     - `user|assistant` -> `MessageBubble`
   - [ ] 2.3 Preserve existing auto-scroll trigger behavior (length/content/isRunning)
   - [ ] 2.4 Preserve current empty-state vs conversation-state layout behavior
+  - [ ] 2.5 Ensure tool rows remain interactive while run is active (expand/collapse enabled before assistant final output) (AC: #5)
+   - [ ] 2.6 Add a compact Tools display selector (`Tools: Show/Hide`) near model/thinking selectors, reusing the existing tool icon style (AC: #7, #8)
+   - [ ] 2.7 Apply tool-row filtering at presentation level from provider state (`showTools`) without mutating normalized message data (AC: #7, #8)
 
 - [ ] Task 3: Keep normalized message boundary in config layer (AC: #2, #4)
   - [ ] 3.1 Keep `normalizeMessages` as the transformation boundary used by provider
@@ -68,7 +93,13 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
     - visibleMessages projection
   - [ ] 4.2 Update existing `ChatView` tests to mock provider contract instead of CopilotKit internals where relevant
   - [ ] 4.3 Ensure existing Story 6.1 tool-call tests remain green
-  - [ ] 4.4 Run full `pnpm test`, `pnpm lint`, `pnpm format`
+  - [ ] 4.4 Add a sequence test where tool-call events arrive before assistant final output and assert immediate render + expandability
+  - [ ] 4.5 Add a sequence test validating live update of expanded tool content as tool args/result deltas arrive
+   - [ ] 4.6 Add tests for Tools selector toggle:
+      - hide tool rows when set to `Hide`
+      - restore tool rows when toggled back to `Show`
+      - ensure non-tool rows remain visible in both states
+   - [ ] 4.7 Run full `pnpm test`, `pnpm lint`, `pnpm format`
 
 ## Dev Notes
 
@@ -92,6 +123,7 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 
 1. **No behavior drift**
    - This is a refactor story. No UX changes expected.
+   - This is a refactor-first story with one explicit UX correction: tool rows become interactable immediately when tool events arrive.
    - Keep all labels, button behavior, tool expansion semantics, and error rendering unchanged.
 
 2. **Single orchestration owner**
@@ -150,6 +182,8 @@ interface ChatUIViewModel {
 ### Regression checklist (must pass)
 
 - Tool call rows still appear/collapse/expand correctly (Story 6.1)
+- Tool call rows are expandable before the final assistant message is emitted
+- Tools selector (`Show/Hide`) hides only tool rows and does not affect user/assistant/reasoning visibility
 - In-progress tool indicator stops on final assistant output
 - Empty tool result does not show misleading `RESULT` label
 - Reasoning blocks still render in chronological order (Story 5.3)
@@ -166,10 +200,54 @@ interface ChatUIViewModel {
    - Shift to contract-driven tests (context mock), not transport internals
    - Keep end-to-end rendering expectations unchanged
 
-3. **Full suite + lint/format gate**
+3. **Event-order and streaming tests**
+   - Validate ordering where tool events precede assistant final completion
+   - Validate expanded tool row remains open and receives incremental payload updates
+
+4. **Full suite + lint/format gate**
    - `pnpm test`
    - `pnpm lint`
    - `pnpm format`
+
+### Implementation sequence (ready-to-execute)
+
+1. **Extract orchestration to provider**
+   - Create `src/context/ChatUIContext.tsx` with `ChatUIProvider` + `useChatUIContext`.
+   - Move from `ChatView` to provider:
+     - `useAgent`, `useCopilotKit`
+     - error subscription (`copilotkit.subscribe({ onError })`)
+     - `handleSend` with `forwardedProps` (`model`, conditional `thinkingEffort`)
+   - Expose a stable VM contract: `visibleMessages`, `isRunning`, `error`, selectors state, actions.
+
+2. **Guarantee real-time tool item interactivity**
+   - Keep `normalizeMessages` as message transformation boundary.
+   - In provider, project tool-call items directly from normalized stream updates.
+   - Ensure no gating by assistant final completion event for tool row render/expandability.
+
+3. **Refactor ChatView to pure composition**
+   - Replace direct CopilotKit hooks with `useChatUIContext`.
+   - Keep existing render branches unchanged (`reasoning` / `tool-call` / bubble).
+   - Keep existing auto-scroll dependency signals (length/last-content/isRunning).
+
+4. **Adjust ToolCallItem behavior for in-progress expansion**
+   - Allow expand/collapse while in-progress.
+   - Keep in-progress indicator visible when `toolResult` is not finalized.
+   - Preserve current rule: no `Result` section for empty-string completion.
+
+5. **Tests and gates**
+   - Add `src/__tests__/chat-ui-context.test.tsx` for provider contract.
+   - Update `src/__tests__/chat-view.test.tsx` to consume context contract.
+   - Update `src/__tests__/tool-call-item.test.tsx` to assert in-progress expandability.
+   - Add sequence test for event order: tool events before assistant final message.
+   - Run `pnpm test`, `pnpm lint`, `pnpm format`.
+
+### Definition of Done (Story 6.1.5)
+
+- `ChatView` no longer imports CopilotKit hooks directly.
+- Provider exposes a transport-agnostic UI VM contract consumed by presentation.
+- Tool rows are visible and expandable before assistant final completion.
+- Existing Story 6.1 behavior is preserved (no regression in labels/layout/order).
+- All targeted tests pass, including event-order and incremental-update cases.
 
 ### Git intelligence (recent patterns to follow)
 
@@ -210,4 +288,4 @@ GPT-5.3-Codex
 
 ### File List
 
-- _bmad-output/implementation-artifacts/6-1-5-ui-context-facade-copilotkit-presentation.md
+- \_bmad-output/implementation-artifacts/6-1-5-ui-context-facade-copilotkit-presentation.md
