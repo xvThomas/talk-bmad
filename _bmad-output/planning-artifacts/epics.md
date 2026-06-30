@@ -686,6 +686,33 @@ So that I understand what external actions are being performed on my behalf.
 **When** they render
 **Then** each tool call is a separate collapsible item in sequence
 
+### Story 6.1.5: Façade UI context (séparation CopilotKit / présentation)
+
+As a developer,
+I want a dedicated React UI context between CopilotKit hooks and presentation components,
+So that the UI layer is decoupled, easier to test, and safer to evolve during Epic 6.
+
+**Acceptance Criteria:**
+
+**Given** the chat UI reads conversation state
+**When** `ChatView` renders
+**Then** presentation components consume a dedicated UI context/view-model instead of directly reading CopilotKit internals
+**And** no functional behavior changes for end users
+
+**Given** tool calls, reasoning, errors, and activity states
+**When** events flow through the app
+**Then** the UI context exposes normalized state for presentation components
+**And** Story 6.1, 6.2, 6.3, and 6.4 behaviors remain unchanged
+
+**Given** tests for chat rendering
+**When** the refactor is complete
+**Then** existing tests continue to pass
+**And** new tests cover context provider behavior and view-model contract
+
+**Given** future migration away from `HttpAgent`
+**When** the transport implementation changes in Epic 7
+**Then** presentation components require minimal or no changes thanks to the UI context boundary
+
 ### Story 6.2: Interrupt max-iterations et bouton Continue
 
 As an end user,
@@ -823,3 +850,26 @@ So that I'm confident it handles all AG-UI event flows correctly.
 **Then** all existing tests pass without modification (interface-compatible swap)
 **And** `@ag-ui/client` is removed from dependencies (or only type imports remain)
 **And** README is updated to reflect the production-ready transport
+
+### Story 7.4: Persistance conversation côté client (post-migration)
+
+As a user,
+I want my in-progress conversation and key UI state to survive hot reload and page refresh,
+So that I can continue my flow without losing context during development and local usage.
+
+**Acceptance Criteria:**
+
+**Given** a conversation with messages and UI state (expanded tools, pending interrupt context)
+**When** the page hot-reloads or refreshes
+**Then** the app restores the latest persisted state from client storage
+**And** the chat remains usable without manual reconstruction
+
+**Given** persisted data is invalid, outdated, or corrupted
+**When** the app starts
+**Then** it safely falls back to a clean state without crashing
+**And** logs a recoverable warning in development mode
+
+**Given** the custom SSE client is active (Epic 7 complete)
+**When** persistence is implemented
+**Then** persistence hooks into the app-level UI context/store (not transport-specific internals)
+**And** the implementation remains transport-agnostic for future evolution

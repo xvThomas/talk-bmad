@@ -97,6 +97,12 @@ The application is designed as an extensible shell: V1 delivers the chat core, f
 - **FR-23:** The repository includes a `README.md` oriented toward getting started: prerequisites, install, build, run, test commands (pnpm-based).
 - **FR-24:** The README is updated with each development story to reflect the current state of the application.
 
+### 3.10 UI Architecture Boundary (Phase A)
+
+- **FR-26:** Introduce a dedicated UI context/view-model layer between CopilotKit hooks (`useAgent`, `useCopilotKit`) and presentation components.
+- **FR-27:** Presentation components consume normalized UI state from this context rather than transport-specific internals.
+- **FR-28:** This architectural refactor must be behavior-preserving for end users (no regressions in chat, reasoning, tools, interrupt, cancel, errors).
+
 ## 4. Non-Functional Requirements
 
 ### 4.1 Type Safety
@@ -140,6 +146,11 @@ The application is designed as an extensible shell: V1 delivers the chat core, f
 - **NFR-15:** GitHub Actions workflow: build + lint + test on push and PR to `main`.
 - **NFR-16:** CI failure blocks merge (branch protection recommended).
 
+### 4.8 Maintainability & Evolvability
+
+- **NFR-17:** UI state and rendering contract must remain decoupled from transport implementation details to reduce migration cost.
+- **NFR-18:** Refactors introducing architectural boundaries (context/store/view-model) must keep existing acceptance behavior and test suite green.
+
 ## 5. Technical Constraints
 
 | Constraint         | Value                                                                                                     |
@@ -178,6 +189,11 @@ The following are explicitly excluded from this PRD:
 ## 6.1 Production Readiness (Final Epic)
 
 The last epic replaces CopilotKit's `agents__unsafe_dev_only` transport layer with a custom AG-UI SSE client built on the Fetch API. This removes the production licensing dependency on CopilotKit Enterprise while keeping all React UI components (MIT licensed). The custom client implements the same `AbstractAgent` interface so existing hooks and components continue to work unchanged.
+
+## 6.2 Architecture Phasing
+
+- **Phase A (Epic 6.1.5):** Add a UI context/view-model boundary to decouple CopilotKit hooks from presentation components while preserving current behavior.
+- **Phase B (Epic 7.4):** Add client-side conversation/UI persistence after SSE custom client migration to avoid coupling persistence to transient transport implementation.
 
 ## 7. Success Metrics
 
