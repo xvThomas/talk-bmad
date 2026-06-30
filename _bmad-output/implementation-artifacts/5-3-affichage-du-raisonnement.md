@@ -14,21 +14,21 @@ So that I understand how the assistant arrived at its answer.
 
 ## Acceptance Criteria (BDD)
 
-1. **Given** the backend emits `REASONING_*` events during a response **When** reasoning content is received **Then** it is displayed above the assistant's text response **And** it is always visible (not collapsed) **And** it is visually distinct from the final response (muted color, italic, bordered block)
+1. **Given** the backend emits `REASONING_*` events during a response **When** reasoning content is received **Then** it is displayed immediately in the chat flow (before or between assistant text/tool iterations according to event order) **And** it is always visible (not collapsed) **And** it is visually distinct from the final response (muted color, italic, bordered block)
 
 2. **Given** a response has no reasoning events **When** the assistant responds **Then** no reasoning block is shown (only the text response)
 
-3. **Given** multiple LLM iterations (tool loop) each produce reasoning **When** reasoning arrives for each iteration **Then** each reasoning block is displayed in order above the final text
+3. **Given** multiple LLM iterations (tool loop) each produce reasoning **When** reasoning arrives for each iteration **Then** each reasoning block is displayed as a separate chat item in chronological order before the final assistant text
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Update normalizeMessages to preserve reasoning messages (AC: #1, #2, #3)
-  - [x] 1.1 Extend `ChatMessageViewModel` type: add `reasoningContent?: string` field
-  - [x] 1.2 Modify `normalizeMessages` to pair `role: "reasoning"` messages with the next `role: "assistant"` message
-  - [x] 1.3 When a reasoning message precedes an assistant message, attach its content to the assistant's `reasoningContent` field
-  - [x] 1.4 When multiple reasoning messages precede an assistant message (tool loop iterations), concatenate them (newline-separated) into a single `reasoningContent`
-  - [x] 1.5 Reasoning messages that don't precede an assistant message are still attached to the nearest following assistant message
-  - [x] 1.6 Unit tests for normalizeMessages: reasoning paired, multiple reasoning paired, no reasoning, reasoning without following assistant message
+- [x] Task 1: Update normalizeMessages to keep reasoning as standalone view items (AC: #1, #2, #3)
+  - [x] 1.1 Extend `ChatMessageViewModel` role union to include `"reasoning"`
+  - [x] 1.2 Keep `role: "reasoning"` messages in normalized output as independent messages
+  - [x] 1.3 Preserve chronological order between user/reasoning/assistant messages
+  - [x] 1.4 Skip non-display roles (`tool`, `system`, `developer`, `activity`) and skip empty/non-string content
+  - [x] 1.5 Keep reasoning messages emitted before the final assistant message so users can read them while tools run
+  - [x] 1.6 Unit tests for normalizeMessages: standalone reasoning, tool-call interleaving, no reasoning, trailing reasoning
 
 - [x] Task 2: Create ReasoningBlock component (AC: #1)
   - [x] 2.1 Create `src/components/ReasoningBlock.tsx` — displays reasoning text above assistant content
@@ -38,15 +38,21 @@ So that I understand how the assistant arrived at its answer.
   - [x] 2.5 Always visible (no collapse/expand toggle)
   - [x] 2.6 Unit test: renders content, applies visual styling
 
-- [x] Task 3: Integrate ReasoningBlock into MessageBubble (AC: #1, #2, #3)
-  - [x] 3.1 Extend `MessageBubbleProps` to accept `reasoningContent?: string`
-  - [x] 3.2 When `role === "assistant"` and `reasoningContent` is provided, render `<ReasoningBlock>` above the text content inside the bubble
-  - [x] 3.3 When `reasoningContent` is absent or empty, don't render any reasoning block (AC: #2)
-  - [x] 3.4 Unit tests: assistant with reasoning shows block above text, assistant without reasoning shows text only, user messages ignore reasoningContent
+- [x] Task 3: Render ReasoningBlock directly in ChatView message flow (AC: #1, #2, #3)
+  - [x] 3.1 Keep `MessageBubble` focused on user/assistant bubbles only
+  - [x] 3.2 Render `<ReasoningBlock>` when `msg.role === "reasoning"`
+  - [x] 3.3 Preserve assistant-only rendering when no reasoning events exist (AC: #2)
+  - [x] 3.4 Unit tests: reasoning appears as separate block(s), assistant rendering unchanged
 
-- [x] Task 4: Pass reasoningContent through ChatView (AC: #1, #2, #3)
-  - [x] 4.1 Update `ChatView` message rendering loop: pass `reasoningContent` from `ChatMessageViewModel` to `MessageBubble`
-  - [x] 4.2 Integration test: full flow with mocked agent.messages containing reasoning + assistant messages verifies reasoning display
+- [x] Task 4: Validate end-to-end reasoning flow in ChatView (AC: #1, #2, #3)
+  - [x] 4.1 Update `ChatView` rendering loop to branch by message role (`reasoning` vs bubble roles)
+  - [x] 4.2 Integration tests: single reasoning, no reasoning, and multi-iteration reasoning in natural order
+
+### Review Findings
+
+- [x] [Review][Patch] Aligner le contrat de la story 5.3 avec le comportement actuel du reasoning [this file]
+- [x] [Review][Patch] Réduire le couplage des tests de reasoning aux classes CSS [src/__tests__/chat-view.test.tsx:348]
+- [x] [Review][Patch] Restaurer un fallback visible pour les messages assistant non textuels [src/config/normalize-messages.ts:29]
 
 ## Dev Notes
 
