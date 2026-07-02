@@ -61,25 +61,26 @@ This document provides the complete epic and story breakdown for the talk projec
 
 ### FR Coverage Map
 
-| FR    | Epic   | Description                       |
-| ----- | ------ | --------------------------------- |
-| FR-1  | Epic 1 | Accept AG-UI POST requests        |
-| FR-2  | Epic 1 | Stream AG-UI response events      |
-| FR-3  | Epic 1 | Handle client disconnection       |
-| FR-6  | Epic 1 | Create session on first request   |
-| FR-12 | Epic 1 | Read config from existing store   |
-| FR-13 | Epic 1 | Configurable server port          |
-| FR-14 | Epic 1 | Runtime error reporting via AG-UI |
-| FR-15 | Epic 1 | Model selection per request       |
-| FR-16 | Epic 1 | Thinking/reasoning via AG-UI      |
-| FR-4  | Epic 2 | Execute tool calls via MCP        |
-| FR-5  | Epic 2 | Emit tool call events             |
-| FR-5b | Epic 2 | Emit error events on tool failure |
-| FR-7  | Epic 3 | Resume existing session           |
-| FR-8  | Epic 3 | List sessions                     |
-| FR-9  | Epic 3 | Delete session                    |
-| FR-10 | Epic 3 | Emit messages snapshot            |
-| FR-11 | Epic 3 | Load history for LLM context      |
+| FR     | Epic   | Description                                                           |
+| ------ | ------ | --------------------------------------------------------------------- |
+| FR-1   | Epic 1 | Accept AG-UI POST requests                                            |
+| FR-2   | Epic 1 | Stream AG-UI response events                                          |
+| FR-3   | Epic 1 | Handle client disconnection                                           |
+| FR-6   | Epic 1 | Create session on first request                                       |
+| FR-12  | Epic 1 | Read config from existing store                                       |
+| FR-13  | Epic 1 | Configurable server port                                              |
+| FR-14  | Epic 1 | Runtime error reporting via AG-UI                                     |
+| FR-15  | Epic 1 | Model selection per request                                           |
+| FR-16  | Epic 1 | Thinking/reasoning via AG-UI                                          |
+| FR-4   | Epic 2 | Execute tool calls via MCP                                            |
+| FR-5   | Epic 2 | Emit tool call events                                                 |
+| FR-5b  | Epic 2 | Emit error events on tool failure                                     |
+| NFR-11 | Epic 2 | Recover MCP sessions after transient network loss or host wake/resume |
+| FR-7   | Epic 3 | Resume existing session                                               |
+| FR-8   | Epic 3 | List sessions                                                         |
+| FR-9   | Epic 3 | Delete session                                                        |
+| FR-10  | Epic 3 | Emit messages snapshot                                                |
+| FR-11  | Epic 3 | Load history for LLM context                                          |
 
 ## Epic List
 
@@ -247,6 +248,32 @@ So that I get answers that require real-time data or computation.
 **When** the limit is hit
 **Then** an AG-UI error event is emitted with a user-facing message (e.g., "J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique.")
 **And** all intermediate messages (tool calls + results) are persisted in the session
+
+### Story 2.5: Résilience des connexions MCP après perte de réseau
+
+As a platform operator,
+I want the backend to recover MCP tool connections automatically after a transient network interruption or when the host wakes from sleep,
+So that MCP tool calls continue to work without restarting `talk serve`.
+
+**Acceptance Criteria:**
+
+**Given** a previously connected MCP server session is lost after host sleep or transient network loss
+**When** the next tool call is attempted
+**Then** the backend detects the invalid MCP session and attempts to reconnect it automatically
+**And** the tool call is retried once after reconnecting successfully
+
+**Given** reconnection succeeds
+**When** the tool call is retried
+**Then** the user-facing conversation continues normally and the frontend receives the expected AG-UI tool and text events
+
+**Given** reconnection fails after retry
+**When** the session cannot be restored
+**Then** the frontend receives an AG-UI error event explaining that MCP tool execution is unavailable for this server
+**And** the backend logs the reconnect failure with server identity and error details
+
+**Given** other requests are in flight during MCP reconnect
+**When** reconnect attempts are ongoing
+**Then** those other requests are not blocked by the reconnection logic
 
 ### Story 2.4: Reprise de conversation après limite d'itérations (future)
 

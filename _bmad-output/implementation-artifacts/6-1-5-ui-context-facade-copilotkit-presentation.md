@@ -1,6 +1,6 @@
 # Story 6.1.5: UI context facade (CopilotKit / presentation separation)
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -77,8 +77,8 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
   - [ ] 2.3 Preserve existing auto-scroll trigger behavior (length/content/isRunning)
   - [ ] 2.4 Preserve current empty-state vs conversation-state layout behavior
   - [ ] 2.5 Ensure tool rows remain interactive while run is active (expand/collapse enabled before assistant final output) (AC: #5)
-   - [ ] 2.6 Add a compact Tools display selector (`Tools: Show/Hide`) near model/thinking selectors, reusing the existing tool icon style (AC: #7, #8)
-   - [ ] 2.7 Apply tool-row filtering at presentation level from provider state (`showTools`) without mutating normalized message data (AC: #7, #8)
+  - [ ] 2.6 Add a compact Tools display selector (`Tools: Show/Hide`) near model/thinking selectors, reusing the existing tool icon style (AC: #7, #8)
+  - [ ] 2.7 Apply tool-row filtering at presentation level from provider state (`showTools`) without mutating normalized message data (AC: #7, #8)
 
 - [ ] Task 3: Keep normalized message boundary in config layer (AC: #2, #4)
   - [ ] 3.1 Keep `normalizeMessages` as the transformation boundary used by provider
@@ -95,11 +95,11 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
   - [ ] 4.3 Ensure existing Story 6.1 tool-call tests remain green
   - [ ] 4.4 Add a sequence test where tool-call events arrive before assistant final output and assert immediate render + expandability
   - [ ] 4.5 Add a sequence test validating live update of expanded tool content as tool args/result deltas arrive
-   - [ ] 4.6 Add tests for Tools selector toggle:
-      - hide tool rows when set to `Hide`
-      - restore tool rows when toggled back to `Show`
-      - ensure non-tool rows remain visible in both states
-   - [ ] 4.7 Run full `pnpm test`, `pnpm lint`, `pnpm format`
+  - [ ] 4.6 Add tests for Tools selector toggle:
+    - hide tool rows when set to `Hide`
+    - restore tool rows when toggled back to `Show`
+    - ensure non-tool rows remain visible in both states
+  - [ ] 4.7 Run full `pnpm test`, `pnpm lint`, `pnpm format`
 
 ## Dev Notes
 
@@ -285,6 +285,21 @@ GPT-5.3-Codex
 
 - Comprehensive context generated for Story 6.1.5 (Phase A) with explicit no-regression guardrails for stories 6.1/6.2/6.3/6.4.
 - Provider contract and file-level plan included to accelerate `dev-story` execution.
+
+### Review Findings
+
+- [x] [Review][Decision] D1: `showConversationLayout = hasMessages || isRunning` — accepted and kept as intentional UX behavior for immediate first-question rendering
+- [x] [Review][Decision] D2: SVG icons added to ModelSelector/ThinkingEffortSelector — accepted and kept
+- [x] [Review][Patch] P1: Filename typo triple-L `use-auto-scrolll.ts` → `use-auto-scroll.ts` [src/hooks/use-auto-scroll.ts]
+- [x] [Review][Patch] P2: `optimisticUserMessages` never pruned — linear memory leak across session [src/context/ChatUIContext.tsx]
+- [x] [Review][Patch] P3: Context `value` object + callbacks (`sendMessage`, `clearError`) recreated every render — memoized with useMemo/useCallback [src/context/ChatUIContext.tsx]
+- [x] [Review][Patch] P4: `max-h-[360px]` + `overflow-hidden` clips tool content > 360px with no scroll affordance [src/components/ChatView.tsx]
+- [x] [Review][Patch] P5: `aria-hidden` without `inert` — focusable button inside hidden tool-call wrapper (WCAG 4.1.2) [src/components/ChatView.tsx]
+- [x] [Review][Patch] P6: `sendMessage("")` creates permanent ghost optimistic message (normalizeMessages drops blank but optimistic array never clears it) [src/context/ChatUIContext.tsx]
+- [x] [Review][Patch] P7: Missing provider-level integration test for out-of-order tool-result arrival per DoD [src/__tests__/chat-ui-context.test.tsx]
+- [x] [Review][Defer] W1: Race condition isRunning / double-send in same frame [src/context/ChatUIContext.tsx] — deferred, pre-existing pattern
+- [x] [Review][Defer] W2: `runAgent` .catch swallows non-Error rejections without logging [src/context/ChatUIContext.tsx] — deferred, pre-existing
+- [x] [Review][Defer] W3: `formatJson` no truncation for very large payloads [src/components/ToolCallItem.tsx] — deferred, pre-existing
 
 ### File List
 
