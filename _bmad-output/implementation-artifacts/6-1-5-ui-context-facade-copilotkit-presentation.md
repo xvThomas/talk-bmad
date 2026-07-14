@@ -18,7 +18,7 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 2. **Given** tool calls, reasoning, errors, and activity states
    **When** events flow through the app
    **Then** the UI context exposes normalized state for presentation components
-   **And** Story 6.1, 6.2, 6.3, and 6.4 behaviors remain unchanged
+   **And** Story 6.1, 6.3, 6.4, and 6.5 behaviors remain unchanged
 
 3. **Given** tests for chat rendering
    **When** the refactor is complete
@@ -106,7 +106,7 @@ so that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 ### Why this story exists now (Epic 6)
 
 - Story 6.1 is done and introduced richer message roles (`reasoning`, `tool-call`) plus reconciliation logic in `normalizeMessages`.
-- Upcoming 6.2/6.3/6.4 add more interaction complexity (interrupt, cancel, inline errors).
+- Upcoming 6.3/6.4/6.5 add more interaction complexity (interrupt, cancel, inline errors).
 - A UI context facade now reduces coupling and lowers risk for the remaining Epic 6 stories.
 
 ### Current implementation snapshot (must preserve)
@@ -283,7 +283,7 @@ GPT-5.3-Codex
 
 ### Completion Notes List
 
-- Comprehensive context generated for Story 6.1.5 (Phase A) with explicit no-regression guardrails for stories 6.1/6.2/6.3/6.4.
+- Comprehensive context generated for Story 6.1.5 (Phase A) with explicit no-regression guardrails for stories 6.1/6.3/6.4/6.5.
 - Provider contract and file-level plan included to accelerate `dev-story` execution.
 
 ### Review Findings

@@ -730,7 +730,7 @@ So that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 **Given** tool calls, reasoning, errors, and activity states
 **When** events flow through the app
 **Then** the UI context exposes normalized state for presentation components
-**And** Story 6.1, 6.2, 6.3, and 6.4 behaviors remain unchanged
+**And** Story 6.1, 6.3, 6.4, and 6.5 behaviors remain unchanged
 
 **Given** tests for chat rendering
 **When** the refactor is complete
@@ -762,7 +762,29 @@ So that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 **Then** tool rows are rendered again immediately using current normalized state
 **And** no new backend request is triggered by this display toggle
 
-### Story 6.2: Interrupt max-iterations et bouton Continue
+### Story 6.2: Messages AG-UI type-safe (Zod) et suppression des casts
+
+As a frontend developer,
+I want AG-UI message parsing and normalization to be fully type-safe with Zod,
+So that the message pipeline is robust and no runtime type casts are needed in UI code.
+
+**Acceptance Criteria:**
+
+**Given** AG-UI messages arrive from the stream
+**When** they are parsed at the normalization boundary
+**Then** supported payloads are validated with explicit Zod schemas
+**And** malformed payloads are safely ignored without crashing the app.
+
+**Given** message rendering in chat UI
+**When** TypeScript strict checks run
+**Then** no type assertions (`as`) are required in the AG-UI message handling and presentation path
+**And** no `any` is introduced.
+
+**Given** existing behavior for tool-call reconciliation and reasoning ordering
+**When** parser-first normalization is introduced
+**Then** behavior remains unchanged and covered by regression tests.
+
+### Story 6.3: Interrupt max-iterations et bouton Continue
 
 As an end user,
 I want to see a "Continue" option when the assistant hits its tool call limit,
@@ -786,7 +808,7 @@ So that I can let it resume working without starting over.
 **Then** it is treated as a new question (standard flow, not a resume)
 **And** the "Continue" button remains visible but becomes inactive/dimmed
 
-### Story 6.3: Annulation de streaming et bouton Retry
+### Story 6.4: Annulation de streaming et bouton Retry
 
 As an end user,
 I want to cancel a response in progress and easily retry my question,
@@ -813,7 +835,7 @@ So that I'm not stuck waiting for a response I no longer want.
 **When** streaming finishes
 **Then** the Cancel button reverts to Send
 
-### Story 6.4: Affichage des erreurs inline
+### Story 6.5: Affichage des erreurs inline
 
 As an end user,
 I want to see error messages clearly in the conversation flow,
