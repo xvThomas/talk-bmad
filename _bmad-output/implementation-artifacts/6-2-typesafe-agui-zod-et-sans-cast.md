@@ -37,47 +37,47 @@ so that message handling is fully type-safe and no runtime casts are needed in t
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Introduce AG-UI schema layer with Zod (AC: #1, #3)
-  - [ ] 1.1 Create `src/config/agui-schemas.ts` with Zod schemas for consumed message variants:
+- [x] Task 1: Introduce AG-UI schema layer with Zod (AC: #1, #3)
+  - [x] 1.1 Create `src/config/agui-schemas.ts` with Zod schemas for consumed message variants:
     - user/assistant/reasoning messages with content
     - assistant tool-call container messages (`toolCalls[]`)
     - tool result messages (`role: "tool"`, optional `toolCallId`)
-  - [ ] 1.2 Create a typed parser API returning discriminated unions for normalization boundary.
-  - [ ] 1.3 Encode tolerant parsing strategy:
+  - [x] 1.2 Create a typed parser API returning discriminated unions for normalization boundary.
+  - [x] 1.3 Encode tolerant parsing strategy:
     - hard reject malformed core fields
     - gracefully skip unsupported message variants
     - keep parser pure and deterministic.
 
-- [ ] Task 2: Refactor normalization to parser-first flow (AC: #1, #2, #3)
-  - [ ] 2.1 Update `src/config/normalize-messages.ts` to consume parser outputs instead of structural casts.
-  - [ ] 2.2 Remove all `as` assertions in this file, including tool-call array assertions.
-  - [ ] 2.3 Preserve existing reconciliation logic:
+- [x] Task 2: Refactor normalization to parser-first flow (AC: #1, #2, #3)
+  - [x] 2.1 Update `src/config/normalize-messages.ts` to consume parser outputs instead of structural casts.
+  - [x] 2.2 Remove all `as` assertions in this file, including tool-call array assertions.
+  - [x] 2.3 Preserve existing reconciliation logic:
     - pending tool results map
     - oldest unmatched fallback
     - unresolved completion on assistant final content.
-  - [ ] 2.4 Keep output contract `ChatMessageViewModel` stable for current consumers.
+  - [x] 2.4 Keep output contract `ChatMessageViewModel` stable for current consumers.
 
-- [ ] Task 3: Remove casts from presentation path (AC: #2, #4)
-  - [ ] 3.1 Update `src/components/ChatView.tsx` to avoid `content as string` by using narrowed message types.
-  - [ ] 3.2 Update `src/components/MessageBubble.tsx` to avoid structural cast when reading non-text content type.
-  - [ ] 3.3 If needed, introduce dedicated type guards/helpers in `src/config/` to keep components simple.
+- [x] Task 3: Remove casts from presentation path (AC: #2, #4)
+  - [x] 3.1 Update `src/components/ChatView.tsx` to avoid `content as string` by using narrowed message types.
+  - [x] 3.2 Update `src/components/MessageBubble.tsx` to avoid structural cast when reading non-text content type.
+  - [x] 3.3 If needed, introduce dedicated type guards/helpers in `src/config/` to keep components simple.
 
-- [ ] Task 4: Strengthen lint/static guardrails for no-cast policy (AC: #2, #5)
-  - [ ] 4.1 Add/adjust ESLint rule set to block unsafe assertions in app code (excluding generated files/tests where justified).
-  - [ ] 4.2 Keep `src/routeTree.gen.ts` excluded as generated code.
-  - [ ] 4.3 Ensure rule changes do not create noise in unrelated code.
+- [x] Task 4: Strengthen lint/static guardrails for no-cast policy (AC: #2, #5)
+  - [x] 4.1 Add/adjust ESLint rule set to block unsafe assertions in app code (excluding generated files/tests where justified).
+  - [x] 4.2 Keep `src/routeTree.gen.ts` excluded as generated code.
+  - [x] 4.3 Ensure rule changes do not create noise in unrelated code.
 
-- [ ] Task 5: Tests for parser, normalization, and rendering invariants (AC: #1, #3, #4, #5)
-  - [ ] 5.1 Add parser tests in `src/__tests__/agui-schemas.test.ts`:
+- [x] Task 5: Tests for parser, normalization, and rendering invariants (AC: #1, #3, #4, #5)
+  - [x] 5.1 Add parser tests in `src/__tests__/agui-schemas.test.ts`:
     - valid payloads parse successfully
     - malformed payloads fail predictably
     - unknown roles/shapes are safely handled.
-  - [ ] 5.2 Extend `src/__tests__/normalize-messages.test.ts` to assert unchanged behavior for:
+  - [x] 5.2 Extend `src/__tests__/normalize-messages.test.ts` to assert unchanged behavior for:
     - mixed tool-call/tool-result ordering
     - reasoning chronology
     - assistant content + toolCalls coexistence.
-  - [ ] 5.3 Update `src/__tests__/chat-view.test.tsx` and/or `src/__tests__/message-bubble.test.tsx` to confirm no behavior drift in rendering with typed content.
-  - [ ] 5.4 Run full gates: lint, tests, build.
+  - [x] 5.3 Update `src/__tests__/chat-view.test.tsx` and/or `src/__tests__/message-bubble.test.tsx` to confirm no behavior drift in rendering with typed content.
+  - [x] 5.4 Run full gates: lint, tests, build.
 
 ## Dev Notes
 
@@ -163,3 +163,4 @@ so that message handling is fully type-safe and no runtime casts are needed in t
 - 2026-07-05: Story created for frontend AG-UI type-safety alignment with local TypeScript skill (Zod boundary + no cast policy).
 - 2026-07-06: Review findings added (P1, P2, P3/defer, P4, W1/defer, W2/defer, D1, D2) — implementation largely done, 3 patches remain open.
 - 2026-07-06: P1, P2, P4 applied — `TextMessage` split into discriminated union (reasoning: `content: string`), `ChatMessageViewModel` replaced by `ContentMessageVM | ReasoningMessageVM | ToolCallMessageVM`, `ChatView` guard removed, `consistent-type-assertions` rule added. 142 tests pass.
+- 2026-07-17: Task 4 completed fully — ESLint upgraded from `strict` to `strictTypeChecked` with `parserOptions.projectService`; 40+ type-aware rules now active; all violations fixed in source and test files; `AGENTS.md` updated with ESLint/tsconfig conventions for AI context. Gates: lint ✓, tsc ✓, 142 tests ✓.
