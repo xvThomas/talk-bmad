@@ -1,6 +1,10 @@
+---
+baseline_commit: 82f7e8d1b26e6fd45da476382415f8a1afea6cc3
+---
+
 # Story 6.3: Interrupt max-iterations et bouton Continue
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -37,32 +41,32 @@ So that I can let it resume working without starting over.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend context types and provider (AC: #1, #2, #3)
-  - [ ] 1.1 Import `Interrupt` type from `@ag-ui/client` in `chat-ui-context-types.ts`
-  - [ ] 1.2 Add `pendingInterrupt: Interrupt | null` to `ChatUIContextValue`
-  - [ ] 1.3 Add `continueFromInterrupt: () => void` to `ChatUIContextValue`
-  - [ ] 1.4 In `ChatUIContext.tsx`, add local state `pendingInterrupt` (initially `null`)
-  - [ ] 1.5 Add `useEffect` that watches `agent.pendingInterrupts`: when non-empty and contains an interrupt with `reason === "talk:max_iterations"`, set `pendingInterrupt` to that interrupt; when empty, clear it to `null`
-  - [ ] 1.6 Implement `continueFromInterrupt`: call `copilotkit.runAgent({ agent, forwardedProps, resume: [{ interruptId: pendingInterrupt.id, status: "resolved" }] })` wrapped in `void` with `.catch` error handler identical to `sendMessage`
-  - [ ] 1.7 Expose `pendingInterrupt` and `continueFromInterrupt` in context value
+- [x] Task 1: Extend context types and provider (AC: #1, #2, #3)
+  - [x] 1.1 Import `Interrupt` type from `@ag-ui/client` in `chat-ui-context-types.ts`
+  - [x] 1.2 Add `pendingInterrupt: Interrupt | null` to `ChatUIContextValue`
+  - [x] 1.3 Add `continueFromInterrupt: () => void` to `ChatUIContextValue`
+  - [x] 1.4 In `ChatUIContext.tsx`, add local state `pendingInterrupt` (initially `null`)
+  - [x] 1.5 Add `useEffect` that watches `agent.pendingInterrupts`: when non-empty and contains an interrupt with `reason === "talk:max_iterations"`, set `pendingInterrupt` to that interrupt; when empty, clear it to `null`
+  - [x] 1.6 Implement `continueFromInterrupt`: call `copilotkit.runAgent({ agent, forwardedProps, resume: [{ interruptId: pendingInterrupt.id, status: "resolved" }] })` wrapped in `void` with `.catch` error handler identical to `sendMessage`
+  - [x] 1.7 Expose `pendingInterrupt` and `continueFromInterrupt` in context value
 
-- [ ] Task 2: Create InterruptBlock component (AC: #1, #2, #3)
-  - [ ] 2.1 Create `src/components/InterruptBlock.tsx`
-  - [ ] 2.2 Props: `{ onContinue: () => void; disabled: boolean }`
-  - [ ] 2.3 Render: info-accent container + message text "The assistant reached its tool call limit." + "Continue" button (disabled when `disabled` is true)
-  - [ ] 2.4 Style consistent with `ErrorBlock` (amber/info accent instead of red)
+- [x] Task 2: Create InterruptBlock component (AC: #1, #2, #3)
+  - [x] 2.1 Create `src/components/InterruptBlock.tsx`
+  - [x] 2.2 Props: `{ onContinue: () => void; disabled: boolean }`
+  - [x] 2.3 Render: info-accent container + message text "The assistant reached its tool call limit." + "Continue" button (disabled when `disabled` is true)
+  - [x] 2.4 Style consistent with `ErrorBlock` (amber/info accent instead of red)
 
-- [ ] Task 3: Wire into ChatView (AC: #1, #2, #3)
-  - [ ] 3.1 Destructure `pendingInterrupt` and `continueFromInterrupt` from `useChatUIContext()` in `ChatView`
-  - [ ] 3.2 Render `<InterruptBlock>` after the message list and before `ActivityIndicator` when `pendingInterrupt !== null`
-  - [ ] 3.3 Pass `disabled={isRunning}` to `InterruptBlock`
+- [x] Task 3: Wire into ChatView (AC: #1, #2, #3)
+  - [x] 3.1 Destructure `pendingInterrupt` and `continueFromInterrupt` from `useChatUIContext()` in `ChatView`
+  - [x] 3.2 Render `<InterruptBlock>` after the message list and before `ActivityIndicator` when `pendingInterrupt !== null`
+  - [x] 3.3 Pass `disabled={isRunning}` to `InterruptBlock`
 
-- [ ] Task 4: Tests (AC: #1, #2, #3, #4)
-  - [ ] 4.1 Extend `mockAgent` in existing test files to include `pendingInterrupts: []`
-  - [ ] 4.2 In `chat-ui-context.test.tsx`: add tests for interrupt detection (pendingInterrupts populated → `pendingInterrupt` exposed), `continueFromInterrupt` calls `mockCopilotKit.runAgent` with correct `resume` array
-  - [ ] 4.3 Create `src/__tests__/interrupt-block.test.tsx`: render tests (shows message + button), button disabled when `disabled=true`, `onContinue` called on click
-  - [ ] 4.4 In `chat-view.test.tsx`: add test that `InterruptBlock` renders when `agent.pendingInterrupts` contains a `talk:max_iterations` interrupt, and disappears when `pendingInterrupts` is empty
-  - [ ] 4.5 Run full gates: lint, tests, build
+- [x] Task 4: Tests (AC: #1, #2, #3, #4)
+  - [x] 4.1 Extend `mockAgent` in existing test files to include `pendingInterrupts: []`
+  - [x] 4.2 In `chat-ui-context.test.tsx`: add tests for interrupt detection (pendingInterrupts populated → `pendingInterrupt` exposed), `continueFromInterrupt` calls `mockCopilotKit.runAgent` with correct `resume` array
+  - [x] 4.3 Create `src/__tests__/interrupt-block.test.tsx`: render tests (shows message + button), button disabled when `disabled=true`, `onContinue` called on click
+  - [x] 4.4 In `chat-view.test.tsx`: add test that `InterruptBlock` renders when `agent.pendingInterrupts` contains a `talk:max_iterations` interrupt, and disappears when `pendingInterrupts` is empty
+  - [x] 4.5 Run full gates: lint, tests, build
 
 ## Dev Notes
 
@@ -272,8 +276,27 @@ it("exposes pendingInterrupt when agent has talk:max_iterations interrupt", () =
 
 ### Completion Notes
 
-_To be filled by dev agent after implementation._
+- **Import path correction:** The Dev Notes specified `import type { Interrupt } from "@ag-ui/client"`, but `@ag-ui/client@0.0.57` does **not** re-export `Interrupt`/`ResumeEntry` (they are only internally imported from `@ag-ui/core`, which is not directly resolvable from the app under pnpm). The correct, type-safe import is `import type { Interrupt } from "@copilotkit/react-core/v2"`, which re-exports both types. Used this path in `chat-ui-context-types.ts` and `ChatUIContext.tsx`.
+- **Derivation instead of state+effect:** The Dev Notes suggested `useState` + `useEffect` + `setPendingInterrupt`. The project's active ESLint rule `react-hooks/set-state-in-effect` forbids synchronous `setState` inside an effect. Replaced with a `useMemo` over `agent.pendingInterrupts` that derives `pendingInterrupt` during render — same behavior (recomputed when the library replaces the array), zero cascading renders. This satisfies AC#1/#2/#3 identically: the block appears when a `talk:max_iterations` interrupt is present and disappears when `pendingInterrupts` is cleared.
+- `continueFromInterrupt` mirrors `sendMessage`'s `forwardedProps` construction and `.catch` error handling, guards on `!pendingInterrupt || agent.isRunning`, and sends `resume: [{ interruptId, status: "resolved" }]`. `agent.threadId` is auto-included by `AbstractAgent.prepareRunAgentInput` — no manual passing.
+- `InterruptBlock` styled with amber accent (mirrors `ErrorBlock` red structure), `role="status"`, static message text, and a `Continue` button disabled while running.
+- Added `pendingInterrupts: []` to all three agent mocks (`app.test.tsx`, `chat-ui-context.test.tsx`, `chat-view.test.tsx`) — required once `ChatUIContext` reads `agent.pendingInterrupts`.
+- **Gates:** `pnpm lint` clean, `pnpm test` 153/153 pass (12 new tests), `pnpm build` succeeds. No regressions.
+
+### File List
+
+| File                                     | Change                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/context/chat-ui-context-types.ts`   | MODIFIED — import `Interrupt`, add `pendingInterrupt` + `continueFromInterrupt` to context value |
+| `src/context/ChatUIContext.tsx`          | MODIFIED — derive `pendingInterrupt` via `useMemo`, add `continueFromInterrupt`, expose both     |
+| `src/components/InterruptBlock.tsx`      | NEW — inline interrupt UI with Continue button                                                   |
+| `src/components/ChatView.tsx`            | MODIFIED — import, destructure, render `InterruptBlock`                                          |
+| `src/__tests__/interrupt-block.test.tsx` | NEW — component render/click/disabled tests                                                      |
+| `src/__tests__/chat-ui-context.test.tsx` | MODIFIED — mock `pendingInterrupts`, expose in consumer, interrupt + resume tests                |
+| `src/__tests__/chat-view.test.tsx`       | MODIFIED — mock `pendingInterrupts`, InterruptBlock render/absence/disabled tests                |
+| `src/__tests__/app.test.tsx`             | MODIFIED — add `pendingInterrupts: []` to agent mock                                             |
 
 ## Change Log
 
+- 2026-07-23: Story implemented — context extended with `pendingInterrupt`/`continueFromInterrupt`, `InterruptBlock` component created and wired into `ChatView`, tests added. Import path corrected to `@copilotkit/react-core/v2`; state+effect replaced with `useMemo` derivation to satisfy `react-hooks/set-state-in-effect`. Gates: lint + 153 tests + build all pass.
 - 2026-07-17: Story created — AG-UI interrupt types researched, AbstractAgent API documented, resume call pattern established, test patterns specified.
