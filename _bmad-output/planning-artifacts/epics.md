@@ -84,28 +84,28 @@ This document provides the complete epic and story breakdown for the talk projec
 
 ## Epic List
 
-### Epic 1: Conversation AG-UI de bout en bout
+### Epic 1: End-to-End AG-UI Conversation
 
 End clients can send a message from a CopilotKit frontend and receive an assistant response as an AG-UI SSE event stream.
 **FRs covered:** FR-1, FR-2, FR-3, FR-6, FR-12, FR-13, FR-14, FR-15, FR-16
 
-### Epic 2: Exécution d'outils MCP avec événements AG-UI
+### Epic 2: MCP Tool Execution with AG-UI Events
 
 The assistant can call external tools (route calculation, weather) during a conversation and the frontend sees tool call progress.
 **FRs covered:** FR-4, FR-5, FR-5b
 
-### Epic 3: Sessions persistantes et historique
+### Epic 3: Persistent Sessions and History
 
 End clients can resume previous conversations, view history, and manage their sessions.
 **FRs covered:** FR-7, FR-8, FR-9, FR-10, FR-11
 
 ---
 
-## Epic 1: Conversation AG-UI de bout en bout
+## Epic 1: End-to-End AG-UI Conversation
 
 End clients can send a message from a CopilotKit frontend and receive an assistant response as an AG-UI SSE event stream. This epic delivers the core server infrastructure: the `talk serve` subcommand, HTTP handler, SSE encoding, session creation, configuration loading, error reporting, and graceful shutdown.
 
-### Story 1.1: Commande `talk serve` et serveur HTTP minimal
+### Story 1.1: The `talk serve` command and minimal HTTP server
 
 As a platform operator,
 I want to start an HTTP server with `talk serve`,
@@ -121,7 +121,7 @@ So that frontends can connect to the conversation engine.
 **And** the server shuts down gracefully on SIGTERM/SIGINT (waits for active connections)
 **And** startup is logged with port and config source info
 
-### Story 1.2: Handler POST /agent avec réponse SSE AG-UI
+### Story 1.2: POST /agent handler with AG-UI SSE response
 
 As a frontend developer,
 I want to send a POST request to `/agent` and receive an SSE event stream,
@@ -145,7 +145,7 @@ So that my CopilotKit frontend can communicate with the assistant.
 **When** it reaches the server
 **Then** HTTP 405 is returned
 
-### Story 1.3: Intégration ConversationManager et config existante
+### Story 1.3: ConversationManager integration and existing config
 
 As a platform operator,
 I want the server to use the same infrastructure configuration (API keys, system prompt, MCP servers) as the CLI,
@@ -174,15 +174,15 @@ So that I don't need to configure the agent twice.
 
 **Given** the configuration is incomplete (no API key or no system prompt)
 **When** a `POST /agent` request arrives
-**Then** an AG-UI error event is emitted with a user-facing message (e.g., "L'assistant n'est pas configuré correctement. Contactez l'administrateur.")
+**Then** an AG-UI error event is emitted with a user-facing message (e.g., "The assistant is not configured correctly. Contact the administrator.")
 **And** an ERROR-level log is written with technical details
 
 **Given** the database is unreachable
 **When** a `POST /agent` request arrives
-**Then** an AG-UI error event is emitted with message "Service temporairement indisponible, veuillez réessayer."
+**Then** an AG-UI error event is emitted with message "Service temporarily unavailable, please try again."
 **And** an ERROR-level log is written
 
-### Story 1.4: Annulation sur déconnexion client
+### Story 1.4: Cancellation on client disconnection
 
 As a frontend developer,
 I want the server to cancel processing if I disconnect,
@@ -225,11 +225,11 @@ So that my UI can display the model's chain-of-thought to the user.
 
 ---
 
-## Epic 2: Exécution d'outils MCP avec événements AG-UI
+## Epic 2: MCP Tool Execution with AG-UI Events
 
 The assistant can call external tools (route calculation, weather) during a conversation and the frontend sees tool call progress. This builds on Epic 1's conversation flow to add the tool execution loop with AG-UI event emission and error handling.
 
-### Story 2.1: Boucle d'exécution d'outils MCP
+### Story 2.1: MCP tool execution loop
 
 As an end client,
 I want the assistant to call external tools (route calculation, weather) during a conversation,
@@ -246,10 +246,66 @@ So that I get answers that require real-time data or computation.
 
 **Given** the tool loop reaches 5 iterations without a final text response
 **When** the limit is hit
-**Then** an AG-UI error event is emitted with a user-facing message (e.g., "J'ai atteint la limite d'appels d'outils sans pouvoir finaliser. Essayez de reformuler votre question de manière plus spécifique.")
+**Then** an AG-UI error event is emitted with a user-facing message (e.g., "I reached the tool call limit without being able to finalize. Try rephrasing your question more specifically.")
 **And** all intermediate messages (tool calls + results) are persisted in the session
 
-### Story 2.5: Résilience des connexions MCP après perte de réseau
+### Story 2.2: AG-UI tool call event emission
+
+As a frontend developer,
+I want to receive AG-UI tool call events during execution,
+So that my UI can show the user what tools are being used (loading indicators, tool names).
+
+**Acceptance Criteria:**
+
+**Given** the LLM requests a tool call
+**When** the server begins tool execution
+**Then** a `TOOL_CALL_START` event is emitted with the tool name and call ID
+**And** a `TOOL_CALL_ARGS` event is emitted with the serialized tool input arguments
+**And** after execution, a `TOOL_CALL_END` event is emitted with the tool result
+**And** all events are flushed immediately to the SSE stream (no buffering)
+
+**Given** the LLM requests multiple tool calls in one iteration
+**When** tools are executed
+**Then** each tool call produces its own START/ARGS/END event triplet
+
+### Story 2.3: MCP error handling with AG-UI error events
+
+As an end client,
+I want to see a clear error message when a tool fails,
+So that I understand what happened and can retry or rephrase my request.
+
+**Acceptance Criteria:**
+
+**Given** the server attempts to call an MCP tool
+**When** the MCP server is unreachable (connection refused, timeout)
+**Then** an AG-UI error event is emitted with a human-readable message (e.g., "Unable to reach the navigation service. Please try again.")
+**And** the error does not terminate the SSE stream
+**And** the LLM is informed of the failure and may produce a text response explaining the issue
+
+**Given** the MCP server returns a tool error
+**When** the error is received
+**Then** an AG-UI error event is emitted with the tool's error description
+**And** an ERROR-level log is written with the full technical details (MCP server URL, tool name, error)
+
+### Story 2.4: Conversation resume after iteration limit (future)
+
+As an end client,
+I want to send "continue" after the assistant hit the tool iteration limit,
+So that the assistant can resume its work with full context of prior tool calls.
+
+**Acceptance Criteria:**
+
+**Given** a previous request hit the 5-iteration limit on a session
+**When** the user sends a follow-up message with the same `threadId`
+**Then** the LLM receives the full detailed context of prior tool calls and results (not just a Q/A summary)
+**And** this works regardless of the `CONTEXT_FULL_TURNS` configuration mode (lean, hybrid, full)
+
+**Design note:** In lean mode (default), `BuildContextMessages` only includes detailed messages for the current turn and summarizes older turns. A turn that hit max-iterations must be force-included in detail for the resume mechanism to work. This requires either a `needs-continuation` flag on the turn or automatic context mode elevation.
+
+**Dependencies:** Story 2.1 (sentinel error and persistence)
+**Status:** not-started
+
+### Story 2.5: MCP connection resilience after network loss
 
 As a platform operator,
 I want the backend to recover MCP tool connections automatically after a transient network interruption or when the host wakes from sleep,
@@ -275,71 +331,13 @@ So that MCP tool calls continue to work without restarting `talk serve`.
 **When** reconnect attempts are ongoing
 **Then** those other requests are not blocked by the reconnection logic
 
-### Story 2.4: Reprise de conversation après limite d'itérations (future)
-
-As an end client,
-I want to send "continue" after the assistant hit the tool iteration limit,
-So that the assistant can resume its work with full context of prior tool calls.
-
-**Acceptance Criteria:**
-
-**Given** a previous request hit the 5-iteration limit on a session
-**When** the user sends a follow-up message with the same `threadId`
-**Then** the LLM receives the full detailed context of prior tool calls and results (not just a Q/A summary)
-**And** this works regardless of the `CONTEXT_FULL_TURNS` configuration mode (lean, hybrid, full)
-
-**Design note:** In lean mode (default), `BuildContextMessages` only includes detailed messages for the current turn and summarizes older turns. A turn that hit max-iterations must be force-included in detail for the resume mechanism to work. This requires either a `needs-continuation` flag on the turn or automatic context mode elevation.
-
-**Dependencies:** Story 2.1 (sentinel error and persistence)
-**Status:** not-started
-
 ---
 
-### Story 2.2: Émission des événements tool call AG-UI
-
-As a frontend developer,
-I want to receive AG-UI tool call events during execution,
-So that my UI can show the user what tools are being used (loading indicators, tool names).
-
-**Acceptance Criteria:**
-
-**Given** the LLM requests a tool call
-**When** the server begins tool execution
-**Then** a `TOOL_CALL_START` event is emitted with the tool name and call ID
-**And** a `TOOL_CALL_ARGS` event is emitted with the serialized tool input arguments
-**And** after execution, a `TOOL_CALL_END` event is emitted with the tool result
-**And** all events are flushed immediately to the SSE stream (no buffering)
-
-**Given** the LLM requests multiple tool calls in one iteration
-**When** tools are executed
-**Then** each tool call produces its own START/ARGS/END event triplet
-
-### Story 2.3: Gestion des erreurs MCP avec AG-UI error events
-
-As an end client,
-I want to see a clear error message when a tool fails,
-So that I understand what happened and can retry or rephrase my request.
-
-**Acceptance Criteria:**
-
-**Given** the server attempts to call an MCP tool
-**When** the MCP server is unreachable (connection refused, timeout)
-**Then** an AG-UI error event is emitted with a human-readable message (e.g., "Impossible de contacter le service de navigation. Veuillez réessayer.")
-**And** the error does not terminate the SSE stream
-**And** the LLM is informed of the failure and may produce a text response explaining the issue
-
-**Given** the MCP server returns a tool error
-**When** the error is received
-**Then** an AG-UI error event is emitted with the tool's error description
-**And** an ERROR-level log is written with the full technical details (MCP server URL, tool name, error)
-
----
-
-## Epic 3: Sessions persistantes et historique
+## Epic 3: Persistent Sessions and History
 
 End clients can resume previous conversations, view history, and manage their sessions. This builds on the session creation from Epic 1 to add full session lifecycle management and history replay.
 
-### Story 3.1: Reprise de session avec historique LLM
+### Story 3.1: Session resume with LLM history
 
 As an end client,
 I want to continue a previous conversation where I left off,
@@ -357,7 +355,7 @@ So that I don't have to re-explain my context.
 **When** the server processes it
 **Then** a new session is created with that `threadId` (treated as first request)
 
-### Story 3.2: MESSAGES_SNAPSHOT pour le frontend
+### Story 3.2: MESSAGES_SNAPSHOT for the frontend
 
 As a frontend developer,
 I want to receive the conversation history when resuming a session,
@@ -374,7 +372,7 @@ So that my UI can display previous messages immediately.
 **When** the SSE stream begins
 **Then** no `MESSAGES_SNAPSHOT` event is emitted
 
-### Story 3.3: Lister et supprimer des sessions
+### Story 3.3: List and delete sessions
 
 As an end client,
 I want to see my previous conversations and delete those I no longer need,
@@ -470,33 +468,33 @@ So that I can organize my conversation history.
 
 ### Frontend Epic List
 
-### Epic 4: Conversation de base fonctionnelle (talk-ui)
+### Epic 4: Basic Functional Conversation (talk-ui)
 
-L'utilisateur peut ouvrir l'app web, envoyer un message et recevoir une réponse en streaming.
+The user can open the web app, send a message, and receive a streaming response.
 **FRs covered:** UI-FR-1, UI-FR-2, UI-FR-3, UI-FR-4, UI-FR-16, UI-FR-21, UI-FR-23, UI-FR-25
 
-### Epic 5: Contrôle du modèle et du raisonnement
+### Epic 5: Model and Reasoning Control
 
-L'utilisateur peut choisir son modèle LLM et activer le mode thinking, et voir le raisonnement du modèle.
+The user can choose their LLM model, enable thinking mode, and see the model's reasoning.
 **FRs covered:** UI-FR-5, UI-FR-6, UI-FR-7, UI-FR-8, UI-FR-9
 
-### Epic 6: Interactions avancées (tools, interrupts, erreurs, cancel)
+### Epic 6: Advanced Interactions (tools, interrupts, errors, cancel)
 
-L'utilisateur voit les tool calls, peut continuer après un interrupt, annuler un streaming, et comprend les erreurs.
+The user sees tool calls in progress, can continue after an interrupt, cancel a streaming response, and understands errors.
 **FRs covered:** UI-FR-10, UI-FR-11, UI-FR-12, UI-FR-13, UI-FR-14, UI-FR-15, UI-FR-17, UI-FR-18, UI-FR-19, UI-FR-20, UI-FR-22
 
-### Epic 7: Client SSE AG-UI custom (production-ready)
+### Epic 7: Custom AG-UI SSE Client (production-ready)
 
-L'app utilise son propre client SSE au lieu de `agents__unsafe_dev_only`, supprimant la dépendance à la licence CopilotKit Enterprise.
+The app uses its own SSE client instead of `agents__unsafe_dev_only`, removing the CopilotKit Enterprise license dependency.
 **FRs covered:** Production architecture (no new user-facing FRs)
 
 ---
 
-## Epic 4: Conversation de base fonctionnelle (talk-ui)
+## Epic 4: Basic Functional Conversation (talk-ui)
 
-L'utilisateur peut ouvrir l'app web, envoyer un message et recevoir une réponse en streaming. Inclut le scaffold projet, la CI, la connexion AG-UI, le chat layout, et le streaming.
+The user can open the web app, send a message, and receive a streaming response. Includes project scaffold, CI, AG-UI connection, chat layout, and streaming.
 
-### Story 4.1: Scaffold projet et CI
+### Story 4.1: Project scaffold and CI
 
 As a developer,
 I want a working project scaffold with Vite, React, TypeScript, Tailwind, TanStack Router, pnpm, and CI,
@@ -517,7 +515,7 @@ So that I have a solid foundation to build features on.
 **And** a GitHub Actions workflow runs build + lint + test on push/PR
 **And** a `README.md` documents: prerequisites (Node 22+, pnpm), install, build, dev, lint, test
 
-### Story 4.2: Connexion CopilotKit + AG-UI backend
+### Story 4.2: CopilotKit + AG-UI backend connection
 
 As a developer,
 I want the app to connect to the `talk serve` backend via CopilotKit's AG-UI integration,
@@ -532,7 +530,7 @@ So that messages can flow between frontend and backend.
 **And** the agent URL is validated with a Zod schema at startup
 **And** the connection configuration is typed (no `any`)
 
-### Story 4.3: Chat layout et envoi de message
+### Story 4.3: Chat layout and message sending
 
 As an end user,
 I want to see a chat interface and send a message,
@@ -555,7 +553,7 @@ So that I can converse with the assistant.
 **Then** messages scroll vertically downward
 **And** the input is fixed at the bottom, centered horizontally
 
-### Story 4.4: Streaming message et auto-scroll
+### Story 4.4: Message streaming and auto-scroll
 
 As an end user,
 I want to see the assistant's response appear progressively,
@@ -577,7 +575,7 @@ So that I know the assistant is actively responding.
 **When** new content arrives
 **Then** auto-scroll resumes
 
-### Story 4.5: Rendu markdown des messages assistant
+### Story 4.5: Markdown rendering for assistant messages
 
 As an end user,
 I want the assistant's messages to be rendered as rich markdown,
@@ -608,11 +606,11 @@ So that headings, lists, code blocks, and other formatting are readable and visu
 
 ---
 
-## Epic 5: Contrôle du modèle et du raisonnement
+## Epic 5: Model and Reasoning Control
 
-L'utilisateur peut choisir son modèle LLM, activer le mode thinking, et voir le raisonnement du modèle affiché dans la conversation.
+The user can choose their LLM model, enable thinking mode, and see the model's reasoning displayed in the conversation.
 
-### Story 5.1: Sélection du modèle LLM
+### Story 5.1: LLM model selection
 
 As an end user,
 I want to choose which LLM model responds to my messages,
@@ -635,7 +633,7 @@ So that I can pick the best model for my needs (speed, quality, cost).
 **When** a response is streaming
 **Then** the selector is disabled (cannot change model mid-stream)
 
-### Story 5.2: Sélection du thinking effort
+### Story 5.2: Thinking effort selection
 
 As an end user,
 I want to control the thinking/reasoning effort when the model supports it,
@@ -661,7 +659,7 @@ So that I can decide between faster responses or deeper reasoning.
 **Then** the thinking selector disappears
 **And** `forwardedProps.thinkingEffort` is omitted from the next request
 
-### Story 5.3: Affichage du raisonnement
+### Story 5.3: Reasoning display
 
 As an end user,
 I want to see the model's reasoning/thinking when it is produced,
@@ -685,11 +683,11 @@ So that I understand how the assistant arrived at its answer.
 
 ---
 
-## Epic 6: Interactions avancées (tools, interrupts, erreurs, cancel)
+## Epic 6: Advanced Interactions (tools, interrupts, errors, cancel)
 
-L'utilisateur voit les tool calls en cours, peut continuer après un interrupt max-iterations, annuler un streaming en cours, et comprend les erreurs affichées dans le fil de conversation.
+The user sees tool calls in progress, can continue after a max-iterations interrupt, cancel an ongoing streaming response, and understands errors displayed in the conversation flow.
 
-### Story 6.1: Affichage des tool calls (collapse/expand)
+### Story 6.1: Tool call display (collapse/expand)
 
 As an end user,
 I want to see which tools the assistant uses during a conversation,
@@ -714,7 +712,7 @@ So that I understand what external actions are being performed on my behalf.
 **When** they render
 **Then** each tool call is a separate collapsible item in sequence
 
-### Story 6.1.5: Façade UI context (séparation CopilotKit / présentation)
+### Story 6.1.5: UI context facade (CopilotKit / presentation separation)
 
 As a developer,
 I want a dedicated React UI context between CopilotKit hooks and presentation components,
@@ -762,7 +760,7 @@ So that the UI layer is decoupled, easier to test, and safer to evolve during Ep
 **Then** tool rows are rendered again immediately using current normalized state
 **And** no new backend request is triggered by this display toggle
 
-### Story 6.2: Messages AG-UI type-safe (Zod) et suppression des casts
+### Story 6.2: Type-safe AG-UI messages (Zod) and cast elimination
 
 As a frontend developer,
 I want AG-UI message parsing and normalization to be fully type-safe with Zod,
@@ -784,7 +782,7 @@ So that the message pipeline is robust and no runtime type casts are needed in U
 **When** parser-first normalization is introduced
 **Then** behavior remains unchanged and covered by regression tests.
 
-### Story 6.3: Interrupt max-iterations et bouton Continue
+### Story 6.3: Max-iterations interrupt and Continue button
 
 As an end user,
 I want to see a "Continue" option when the assistant hits its tool call limit,
@@ -808,7 +806,7 @@ So that I can let it resume working without starting over.
 **Then** it is treated as a new question (standard flow, not a resume)
 **And** the "Continue" button remains visible but becomes inactive/dimmed
 
-### Story 6.4: Annulation de streaming et bouton Retry
+### Story 6.4: Streaming cancellation and Retry button
 
 As an end user,
 I want to cancel a response in progress and easily retry my question,
@@ -835,7 +833,7 @@ So that I'm not stuck waiting for a response I no longer want.
 **When** streaming finishes
 **Then** the Cancel button reverts to Send
 
-### Story 6.5: Affichage des erreurs inline
+### Story 6.5: Inline error display
 
 As an end user,
 I want to see error messages clearly in the conversation flow,
@@ -856,11 +854,11 @@ So that I understand what went wrong and know I can continue.
 
 ---
 
-## Epic 7: Client SSE AG-UI custom (production-ready)
+## Epic 7: Custom AG-UI SSE Client (production-ready)
 
-L'app utilise son propre client SSE au lieu de `agents__unsafe_dev_only`, supprimant la dépendance à la licence CopilotKit Enterprise pour le déploiement production.
+The app uses its own SSE client instead of `agents__unsafe_dev_only`, removing the CopilotKit Enterprise license dependency for production deployment.
 
-### Story 7.1: Client SSE Fetch avec parsing d'événements AG-UI
+### Story 7.1: Fetch SSE client with AG-UI event parsing
 
 As a developer,
 I want a custom SSE client that connects to the backend and parses AG-UI events,
@@ -884,7 +882,7 @@ So that the app no longer depends on CopilotKit's `HttpAgent` for transport.
 **When** the fetch fails
 **Then** a typed error is propagated to the consumer
 
-### Story 7.2: Implémentation de l'interface AbstractAgent
+### Story 7.2: AbstractAgent interface implementation
 
 As a developer,
 I want the custom SSE client to implement the same interface used by CopilotKit components,
@@ -903,7 +901,7 @@ So that existing hooks and UI components work unchanged after the swap.
 **Then** the app functions without any CopilotKit Enterprise dependency
 **And** all existing features (streaming, reasoning, tools, interrupts, cancel, errors) pass their tests
 
-### Story 7.3: Tests unitaires du client et migration
+### Story 7.3: Client unit tests and migration
 
 As a developer,
 I want the custom SSE client to be thoroughly tested,
@@ -922,7 +920,7 @@ So that I'm confident it handles all AG-UI event flows correctly.
 **And** `@ag-ui/client` is removed from dependencies (or only type imports remain)
 **And** README is updated to reflect the production-ready transport
 
-### Story 7.4: Persistance conversation côté client (post-migration)
+### Story 7.4: Client-side conversation persistence (post-migration)
 
 As a user,
 I want my in-progress conversation and key UI state to survive hot reload and page refresh,

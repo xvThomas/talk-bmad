@@ -11,7 +11,7 @@ updated: 2026-06-24
 
 This PRD defines the requirements for adding an AG-UI protocol server to the existing `talk` CLI application. It targets the development team (single developer) and downstream workflow owners (epic/story creation, architecture decisions). The document builds on the technical research completed on 2026-06-20 (`planning-artifacts/research/technical-ag-ui-protocol-server-go-research-2026-06-20.md`) and the project conventions in `project-context.md`.
 
-## 1. Vision
+## 1. Vision 
 
 The `talk` conversation engine currently operates exclusively through a terminal CLI. While effective for developer workflows, this limits its reach to technical users comfortable with a command line. End clients — who need conversational access to domain-specific tools (route calculation, weather, cartographic data) — require a web interface.
 
@@ -37,9 +37,9 @@ The architecture is deliberately simple: one `talk serve` instance = one pre-con
 - **UJ-1. End client calculates a route via chat.**
   - **Persona + context:** Marie, field technician, needs to plan an intervention route from her office browser.
   - **Entry state:** Authenticated (future), opens the navigation frontend app.
-  - **Path:** Types "Itinéraire de Paris Gare de Lyon à Marseille Saint-Charles en évitant les péages" → sees a thinking indicator → receives a text response with route details (distance, duration, steps) produced by the LLM calling the IGN navigation MCP tool.
+  - **Path:** Types "Route from Paris Gare de Lyon to Marseille Saint-Charles avoiding tolls" → sees a thinking indicator → receives a text response with route details (distance, duration, steps) produced by the LLM calling the IGN navigation MCP tool.
   - **Climax:** The route information appears in the chat, formatted and actionable.
-  - **Resolution:** Marie can ask follow-up questions ("et sans autoroute ?") in the same session, with full conversational context preserved.
+  - **Resolution:** Marie can ask follow-up questions ("and without highways?") in the same session, with full conversational context preserved.
 
 - **UJ-2. End client resumes a previous conversation.**
   - **Persona + context:** Marie returns the next day to refine yesterday's route.
@@ -174,7 +174,7 @@ When an MCP tool call fails (connection error, timeout, tool error), the server 
 
 **Consequences (testable):**
 
-- MCP server unreachable → error event with message like "Impossible de contacter le service de navigation. Veuillez réessayer."
+- MCP server unreachable → error event with message like "Unable to reach the navigation service. Please try again."
 - Tool returns an error → error event with the tool's error description.
 - The error event does not terminate the SSE stream (other events can follow if the LLM decides to respond despite the failure).
 
@@ -235,9 +235,9 @@ The server always starts and listens on its port regardless of configuration sta
 
 **Consequences (testable):**
 
-- Missing or invalid LLM API key → AG-UI error event with user-facing message (e.g., "L'assistant n'est pas configuré correctement. Contactez l'administrateur.").
+- Missing or invalid LLM API key → AG-UI error event with user-facing message (e.g., "The assistant is not configured correctly. Contact the administrator.").
 - Missing system prompt → AG-UI error event with user-facing message.
-- Database unreachable → AG-UI error event with message ("Service temporairement indisponible, veuillez réessayer.") + `ERROR` level log with technical details for the operator.
+- Database unreachable → AG-UI error event with message ("Service temporarily unavailable, please try again.") + `ERROR` level log with technical details for the operator.
 - The server process never exits due to configuration errors — it remains available and can recover (e.g., DB reconnection) without restart.
 - Health-degraded state is visible in logs (structured logging with error category).
 
@@ -248,7 +248,7 @@ The frontend sends a model alias in each request via `forwardedProps.model`. The
 **Consequences (testable):**
 
 - A valid `forwardedProps.model` value (e.g., `"sonnet-4.6"`, `"haiku-4.5"`) causes the server to use that model for the LLM call.
-- Missing `forwardedProps.model` → AG-UI error event with message "Le champ model est requis. Modèles disponibles : haiku-4.5, sonnet-4.6, opus, o4-mini, gpt-5.4, mistral-small."
+- Missing `forwardedProps.model` → AG-UI error event with message "The model field is required. Available models: haiku-4.5, sonnet-4.6, opus, o4-mini, gpt-5.4, mistral-small."
 - Unknown model alias → AG-UI error event listing the available models.
 - The model alias is passed via the AG-UI standard `forwardedProps` field (`RunAgentInput.ForwardedProps`), which CopilotKit supports natively.
 
