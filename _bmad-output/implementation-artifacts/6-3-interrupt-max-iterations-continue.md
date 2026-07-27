@@ -285,16 +285,16 @@ it("exposes pendingInterrupt when agent has talk:max_iterations interrupt", () =
 
 ### File List
 
-| File | Change |
-| --- | --- |
-| `src/context/chat-ui-context-types.ts` | MODIFIED — import `Interrupt`, add `pendingInterrupt` + `continueFromInterrupt` to context value |
-| `src/context/ChatUIContext.tsx` | MODIFIED — derive `pendingInterrupt` via `useMemo`, add `continueFromInterrupt`, expose both |
-| `src/components/InterruptBlock.tsx` | NEW — inline interrupt UI with Continue button |
-| `src/components/ChatView.tsx` | MODIFIED — import, destructure, render `InterruptBlock` |
-| `src/__tests__/interrupt-block.test.tsx` | NEW — component render/click/disabled tests |
-| `src/__tests__/chat-ui-context.test.tsx` | MODIFIED — mock `pendingInterrupts`, expose in consumer, interrupt + resume tests |
-| `src/__tests__/chat-view.test.tsx` | MODIFIED — mock `pendingInterrupts`, InterruptBlock render/absence/disabled tests |
-| `src/__tests__/app.test.tsx` | MODIFIED — add `pendingInterrupts: []` to agent mock |
+| File                                     | Change                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/context/chat-ui-context-types.ts`   | MODIFIED — import `Interrupt`, add `pendingInterrupt` + `continueFromInterrupt` to context value |
+| `src/context/ChatUIContext.tsx`          | MODIFIED — derive `pendingInterrupt` via `useMemo`, add `continueFromInterrupt`, expose both     |
+| `src/components/InterruptBlock.tsx`      | NEW — inline interrupt UI with Continue button                                                   |
+| `src/components/ChatView.tsx`            | MODIFIED — import, destructure, render `InterruptBlock`                                          |
+| `src/__tests__/interrupt-block.test.tsx` | NEW — component render/click/disabled tests                                                      |
+| `src/__tests__/chat-ui-context.test.tsx` | MODIFIED — mock `pendingInterrupts`, expose in consumer, interrupt + resume tests                |
+| `src/__tests__/chat-view.test.tsx`       | MODIFIED — mock `pendingInterrupts`, InterruptBlock render/absence/disabled tests                |
+| `src/__tests__/app.test.tsx`             | MODIFIED — add `pendingInterrupts: []` to agent mock                                             |
 
 ## Change Log
 
