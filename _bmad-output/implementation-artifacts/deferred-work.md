@@ -15,3 +15,7 @@
 - W1: Race condition between `agent.isRunning` guard and async `runAgent` completion — double-send theoretically possible in same React frame. Pre-existing pattern, window is near-zero with React 19 batching.
 - W2: `copilotkit.runAgent().catch()` swallows non-Error rejections (e.g. string throws) with only a generic "unexpected error" message and no console.error. Pre-existing behavior.
 - W3: `formatJson` in ToolCallItem renders arbitrarily large JSON payloads without truncation — potential DOM performance issue for very large tool results. Pre-existing.
+
+## Deferred from: code review of 6-3-interrupt-max-iterations-continue (2026-07-30)
+
+- If `agent.pendingInterrupts` only ever contains interrupts whose `reason` isn't `talk:max_iterations`, `pendingInterrupt` stays `null` forever and no UI ever appears — the agent would be left blocked with no affordance to unblock it. Deferred because only the `talk:max_iterations` reason exists in the product today; revisit once a second interrupt reason is introduced.

@@ -4,7 +4,7 @@ baseline_commit: 82f7e8d1b26e6fd45da476382415f8a1afea6cc3
 
 # Story 6.3: Interrupt max-iterations et bouton Continue
 
-Status: review
+Status: done
 
 ## Story
 
@@ -23,14 +23,14 @@ So that I can let it resume working without starting over.
 **AC#2** — Continue action
 **Given** the user clicks "Continue"
 **When** the resume request is sent
-**Then** it is sent with `resume: [{ interruptId: <id>, status: "resolved" }]` and the `agent.threadId` is preserved in the request (auto-handled by `runAgent`)
+**Then** it is sent with `resume` covering every entry in `agent.pendingInterrupts` (not only the `talk:max_iterations` interrupt shown in the UI) with `status: "resolved"` — the AG-UI client rejects a resume that does not address every open interrupt — and the `agent.threadId` is preserved in the request (auto-handled by `runAgent`)
 **And** the assistant continues processing (new streaming response begins)
 **And** the InterruptBlock disappears once `agent.pendingInterrupts` is cleared
 
-**AC#3** — New message doesn't resume
+**AC#3** — New message abandons the pending interrupt
 **Given** the user types and sends a new message instead of clicking "Continue"
 **When** the message is submitted
-**Then** it is sent as a standard run (no `resume` entries)
+**Then** every entry in `agent.pendingInterrupts` is resumed with `status: "cancelled"` alongside the new run, and a "Request cancelled by user" notice is shown before that message
 **And** the "Continue" button becomes inactive (disabled) while `isRunning` is true
 **And** once the run completes normally, the `pendingInterrupts` are cleared by the library and the InterruptBlock disappears
 
@@ -67,6 +67,22 @@ So that I can let it resume working without starting over.
   - [x] 4.3 Create `src/__tests__/interrupt-block.test.tsx`: render tests (shows message + button), button disabled when `disabled=true`, `onContinue` called on click
   - [x] 4.4 In `chat-view.test.tsx`: add test that `InterruptBlock` renders when `agent.pendingInterrupts` contains a `talk:max_iterations` interrupt, and disappears when `pendingInterrupts` is empty
   - [x] 4.5 Run full gates: lint, tests, build
+
+### Review Findings
+
+- [x] [Review][Patch] Document that "Continue" intentionally resolves every pending interrupt, not only the displayed `talk:max_iterations` one — Confirmed by product intent: clicking Continue means "resume the same flow", so sweeping all pending interrupts as `resolved` is correct behavior. Update AC#2 wording and the Completion Notes (which currently describe a singular `pendingInterrupt` guard) to state this explicitly. No code change needed — the implementation already does this. [AC#2, Dev Agent Record / Completion Notes]
+- [x] [Review][Patch] `sendMessage` must explicitly cancel any pending interrupts when the user sends a new message instead of clicking Continue — Already implemented in commit `090d9a4` (predates this review), which fell outside the diff originally scoped for review. Verified present, AC#3 updated to match. [`src/context/ChatUIContext.tsx`, `src/__tests__/chat-ui-context.test.tsx`]
+
+- [x] [Review][Patch] Missing `void` on `copilotkit.runAgent(...).catch(...)` — regression in `sendMessage` (previously had `void`) and missing in the new `continueFromInterrupt` — violates the documented "no-floating-promises" guardrail [`src/context/ChatUIContext.tsx`:109-121,126-161]
+- [x] [Review][Patch] No-op `useMemo` wrapping `agent.pendingInterrupts` with no transformation — pointless indirection [`src/context/ChatUIContext.tsx`:41-45]
+- [x] [Review][Patch] No test exercises `continueFromInterrupt` with `thinkingEffort !== "off"` — the duplicated `forwardedProps.thinkingEffort` branch in the resume path is unverified [`src/__tests__/chat-ui-context.test.tsx`]
+- [x] [Review][Patch] `role="status" aria-live="polite"` wraps the interactive Continue button — live regions shouldn't host interactive controls; screen-reader behavior is unpredictable [`src/components/InterruptBlock.tsx`:8-19]
+- [x] [Review][Patch] Dev Agent Completion Notes describe the guard as `!pendingInterrupt || agent.isRunning` (singular) but the code actually guards on `pendingInterrupts.length === 0 || agent.isRunning` (plural) — update Completion Notes to match the implementation
+- [x] [Review][Patch] Duplicated error-handling logic between `sendMessage` and `continueFromInterrupt` catch blocks — extract a shared helper (e.g. `handleRunAgentError(caught: unknown)`) used by both callbacks instead of repeating the fallback-message / `Error` type-check / `setError` sequence [`src/context/ChatUIContext.tsx`]
+- [x] [Review][Patch] Rapid double-click on "Continue" before re-render disables the button could fire two concurrent resume calls — guard `continueFromInterrupt` (and `sendMessage`) against re-entrancy while a run is already in flight [`src/components/InterruptBlock.tsx`:17-19, `src/context/ChatUIContext.tsx`]
+- [x] [Review][Patch] Disabled Continue button exposes no visible/ARIA reason for being disabled — added a `title` attribute (kept accessible name as "Continue" to avoid breaking existing role/name test queries) [`src/components/InterruptBlock.tsx`]
+
+- [x] [Review][Defer] If `pendingInterrupts` only ever contains non-`talk:max_iterations` reasons, no UI ever appears and the agent stays blocked [`src/context/ChatUIContext.tsx`] — deferred, out of scope (only `talk:max_iterations` exists today)
 
 ## Dev Notes
 
@@ -278,10 +294,12 @@ it("exposes pendingInterrupt when agent has talk:max_iterations interrupt", () =
 
 - **Import path correction:** The Dev Notes specified `import type { Interrupt } from "@ag-ui/client"`, but `@ag-ui/client@0.0.57` does **not** re-export `Interrupt`/`ResumeEntry` (they are only internally imported from `@ag-ui/core`, which is not directly resolvable from the app under pnpm). The correct, type-safe import is `import type { Interrupt } from "@copilotkit/react-core/v2"`, which re-exports both types. Used this path in `chat-ui-context-types.ts` and `ChatUIContext.tsx`.
 - **Derivation instead of state+effect:** The Dev Notes suggested `useState` + `useEffect` + `setPendingInterrupt`. The project's active ESLint rule `react-hooks/set-state-in-effect` forbids synchronous `setState` inside an effect. Replaced with a `useMemo` over `agent.pendingInterrupts` that derives `pendingInterrupt` during render — same behavior (recomputed when the library replaces the array), zero cascading renders. This satisfies AC#1/#2/#3 identically: the block appears when a `talk:max_iterations` interrupt is present and disappears when `pendingInterrupts` is cleared.
-- `continueFromInterrupt` mirrors `sendMessage`'s `forwardedProps` construction and `.catch` error handling, guards on `!pendingInterrupt || agent.isRunning`, and sends `resume: [{ interruptId, status: "resolved" }]`. `agent.threadId` is auto-included by `AbstractAgent.prepareRunAgentInput` — no manual passing.
+- `continueFromInterrupt` mirrors `sendMessage`'s `forwardedProps` construction and `.catch` error handling, guards on `pendingInterrupts.length === 0 || agent.isRunning`, and sends `resume` covering every entry in `agent.pendingInterrupts` with `status: "resolved"` — not only the displayed `talk:max_iterations` one — since the AG-UI client rejects a resume that doesn't address every open interrupt. `agent.threadId` is auto-included by `AbstractAgent.prepareRunAgentInput` — no manual passing.
 - `InterruptBlock` styled with amber accent (mirrors `ErrorBlock` red structure), `role="status"`, static message text, and a `Continue` button disabled while running.
 - Added `pendingInterrupts: []` to all three agent mocks (`app.test.tsx`, `chat-ui-context.test.tsx`, `chat-view.test.tsx`) — required once `ChatUIContext` reads `agent.pendingInterrupts`.
 - **Gates:** `pnpm lint` clean, `pnpm test` 153/153 pass (12 new tests), `pnpm build` succeeds. No regressions.
+- **Follow-up (commit `090d9a4`):** `sendMessage` now also resumes every pending interrupt with `status: "cancelled"` when the user sends a new message instead of clicking Continue, and shows a "Request cancelled by user" notice before that message — implements AC#3 fully (previously `sendMessage` left pending interrupts unaddressed).
+- **Code review round (2026-07-30):** added `void` on both `copilotkit.runAgent(...).catch(...)` call sites (missing on the new `continueFromInterrupt` call, and regressed off `sendMessage`'s pre-existing call); extracted a shared `handleRunAgentError` helper used by both callbacks; removed a no-op `useMemo` wrapping `agent.pendingInterrupts`; added an `isSubmittingRef` guard against double-clicking "Continue"/"send" before `agent.isRunning` flips; moved `role="status" aria-live="polite"` off the container (which also held the interactive button) onto the message `<p>` only; added a `title` attribute on the disabled Continue button explaining why it's disabled; added a test covering `continueFromInterrupt` with `thinkingEffort` enabled.
 
 ### File List
 

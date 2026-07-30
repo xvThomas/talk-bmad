@@ -1,0 +1,103 @@
+# generated: 2026-07-30
+# last_updated: 2026-07-30
+# project: talk-bmad
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# KNOWN DISCREPANCIES (see code-review session notes, 2026-07-30):
+# - 1-1 and 1-2 have no story/spec file despite being implemented (predate story tracking) — marked
+#   'backlog' per file-based detection only; verify manually before trusting this status.
+# - Story key '2-3' in epics.md is "MCP error handling with AG-UI error events", but the actual file
+#   on disk (2-3-toolcall-handler-composition.md) covers a different topic ("ToolCall/Message handler
+#   composition"). Key below follows the file on disk (ground truth), not the epics.md title.
+
+generated: 2026-07-30
+last_updated: 2026-07-30
+project: talk-bmad
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: done
+  1-1-the-talk-serve-command-and-minimal-http-server: done
+  1-2-post-agent-handler-with-ag-ui-sse-response: done
+  1-3-conversationmanager-integration-and-existing-config: done
+  1-4-cancellation-on-client-disconnection: done
+  1-4-5-unification-messageeventhandler-et-aguiemitter: done
+  1-5-thinking-reasoning-via-ag-ui: done
+  epic-1-retrospective: optional
+
+  epic-2: in-progress
+  2-1-mcp-tool-execution-loop: done
+  2-2-ag-ui-tool-call-event-emission: done
+  2-3-toolcall-handler-composition: done
+  2-4-conversation-resume-after-iteration-limit: review
+  2-5-mcp-connection-resilience-after-network-loss: done
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-session-resume-with-llm-history: backlog
+  3-2-messages-snapshot-for-the-frontend: backlog
+  3-3-list-and-delete-sessions: backlog
+  epic-3-retrospective: optional
+
+  epic-4: in-progress
+  4-1-project-scaffold-and-ci: review
+  4-2-copilotkit-ag-ui-backend-connection: review
+  4-3-chat-layout-and-message-sending: review
+  4-4-message-streaming-and-auto-scroll: review
+  4-5-markdown-rendering-for-assistant-messages: review
+  epic-4-retrospective: optional
+
+  epic-5: done
+  5-1-llm-model-selection: done
+  5-2-thinking-effort-selection: done
+  5-3-reasoning-display: done
+  epic-5-retrospective: optional
+
+  epic-6: in-progress
+  6-1-tool-call-display-collapse-expand: done
+  6-1-5-ui-context-facade-copilotkit-presentation: done
+  6-2-typesafe-ag-ui-zod-et-sans-cast: done
+  6-3-interrupt-max-iterations-continue: done
+  6-4-streaming-cancellation-and-retry-button: backlog
+  6-5-inline-error-display: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-fetch-sse-client-with-ag-ui-event-parsing: backlog
+  7-2-abstractagent-interface-implementation: backlog
+  7-3-client-unit-tests-and-migration: backlog
+  7-4-client-side-conversation-persistence-post-migration: backlog
+  epic-7-retrospective: optional
