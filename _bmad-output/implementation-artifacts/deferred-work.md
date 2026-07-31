@@ -1,3 +1,15 @@
+## Deferred from: code review of 4-1-scaffold-projet-et-ci.md (2026-07-30)
+
+- D1: `eslint.config.js` utilisait `.strict` au lieu de `.strictTypeChecked` — déjà corrigé en commit ultérieur
+- D2: `tsconfig.app.json` manquait `exactOptionalPropertyTypes` — déjà corrigé en commit ultérieur
+- D3: CI steps non pinnés à des SHA de commit — best practice sécurité, hors AC, choix délibéré
+- D4: CI sans bloc `permissions` — amélioration sécurité, hors AC
+- D5: CI build avant lint/format — préférence d'ordre, non bloquant
+- D6: `package.json` sans `engines.pnpm` — hors AC
+- D7: Pas de seuils de coverage dans vitest — hors AC
+- D8: `.nvmrc` "22" vs engines `>=22.12.0` — incohérence mineure, intentionnelle
+- D9: TanStack Router plugin Vite manquant — routes pré-générées et committées, intentionnel
+
 ## Deferred from: code review of 2-5-mcp-connection-resilience.md (2026-07-02)
 
 - W1: `ConnectAll` leaks existing sessions when called a second time — pre-existing architecture limitation; `ConnectAll` is a bootstrap operation not designed for repeated calls.

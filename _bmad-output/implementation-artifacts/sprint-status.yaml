@@ -73,7 +73,7 @@ development_status:
   epic-3-retrospective: optional
 
   epic-4: in-progress
-  4-1-project-scaffold-and-ci: review
+  4-1-project-scaffold-and-ci: done
   4-2-copilotkit-ag-ui-backend-connection: review
   4-3-chat-layout-and-message-sending: review
   4-4-message-streaming-and-auto-scroll: review

@@ -1,6 +1,6 @@
 # Story 4.1: Scaffold projet et CI
 
-Status: review
+Status: done
 
 ## Story
 
@@ -77,6 +77,18 @@ So that I have a solid foundation to build features on.
   - [x] Keep it concise — getting started in < 1 minute
 
 ### Review Findings
+
+- [x] [Review][Patch] `.prettierrc` manque `endOfLine` — risque de divergence CRLF/LF cross-platform [`.prettierrc`]
+- [x] [Review][Patch] Pas de `notFoundComponent` dans le root layout — route non matchée affiche une page blanche [`src/routes/__root.tsx`]
+- [x] [Review][Defer] `eslint.config.js` utilisait `.strict` au lieu de `.strictTypeChecked` [`.github/instructions`] — deferred, déjà corrigé en commit ultérieur
+- [x] [Review][Defer] `tsconfig.app.json` manquait `exactOptionalPropertyTypes` [`tsconfig.app.json`] — deferred, déjà corrigé en commit ultérieur
+- [x] [Review][Defer] CI steps non pinnés à des SHA — deferred, best practice hors AC
+- [x] [Review][Defer] CI sans bloc `permissions` — deferred, amélioration sécurité hors AC
+- [x] [Review][Defer] CI build avant lint/format — deferred, préférence d'ordre non bloquante
+- [x] [Review][Defer] `package.json` sans `engines.pnpm` — deferred, hors AC
+- [x] [Review][Defer] Pas de seuils de coverage — deferred, hors AC
+- [x] [Review][Defer] `.nvmrc` "22" vs engines `>=22.12.0` — deferred, incohérence mineure intentionnelle
+- [x] [Review][Defer] TanStack Router plugin Vite manquant — deferred, routes pré-générées et committées
 
 - No findings mapped to this story from the cross-story code review.
 
