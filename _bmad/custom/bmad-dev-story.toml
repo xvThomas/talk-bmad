@@ -1,0 +1,15 @@
+# Team override for bmad-dev-story.
+# Appended to the base customize.toml via BMad structural merge rules.
+
+[workflow]
+
+on_complete = """
+After updating sprint-status.yaml, run the GitHub Projects sync script to keep \
+the pixime-net GitHub Projects in sync:
+
+  python3 {project-root}/scripts/sync-github-projects.py
+
+Report the output to the user (updated / created / already in sync counts).
+If gh CLI is not available or returns an auth error, tell the user to run the \
+script manually.
+"""

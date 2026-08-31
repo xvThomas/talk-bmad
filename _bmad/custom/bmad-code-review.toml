@@ -1,0 +1,16 @@
+# Team override for bmad-code-review.
+# Appended to the base customize.toml via BMad structural merge rules.
+
+[workflow]
+
+on_complete = """
+After presenting review findings and syncing sprint status, run the GitHub \
+Projects sync script to reflect the updated story status in the pixime-net \
+GitHub Projects:
+
+  python3 {project-root}/scripts/sync-github-projects.py
+
+Report the output to the user (updated / created / already in sync counts).
+If gh CLI is not available or returns an auth error, tell the user to run the \
+script manually.
+"""

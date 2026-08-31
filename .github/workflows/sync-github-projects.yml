@@ -1,0 +1,20 @@
+name: Sync GitHub Projects
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '_bmad-output/implementation-artifacts/sprint-status.yaml'
+
+jobs:
+  sync:
+    name: Sync sprint-status → GitHub Projects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up gh CLI with project scope
+        run: echo "${{ secrets.GH_PROJECT_PAT }}" | gh auth login --with-token
+
+      - name: Run sync script
+        run: python3 scripts/sync-github-projects.py

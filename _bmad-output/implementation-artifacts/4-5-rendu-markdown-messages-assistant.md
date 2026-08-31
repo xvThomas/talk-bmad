@@ -4,7 +4,7 @@ baseline_commit: 4489ad464f9a4e5ff6bf7f7ebd1ddcfdbbdaa311
 
 # Story 4.5: Rendu markdown des messages assistant
 
-Status: review
+Status: done
 
 ## Story
 

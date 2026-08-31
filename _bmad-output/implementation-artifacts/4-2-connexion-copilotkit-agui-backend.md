@@ -1,6 +1,6 @@
 # Story 4.2: Connexion CopilotKit + AG-UI backend
 
-Status: review
+Status: done
 
 ## Story
 

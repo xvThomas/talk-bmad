@@ -4,7 +4,7 @@ baseline_commit: d7f6677ea2945f3bf242fdb48d10eef4f34edc1c
 
 # Story 4.3: Chat layout et envoi de message
 
-Status: review
+Status: done
 
 ## Story
 

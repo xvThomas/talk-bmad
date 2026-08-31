@@ -4,7 +4,7 @@ baseline_commit: c4faae9ff6398328df24e345d3c765e2ef438758
 
 # Story 4.4: Streaming message et auto-scroll
 
-Status: review
+Status: done
 
 ## Story
 

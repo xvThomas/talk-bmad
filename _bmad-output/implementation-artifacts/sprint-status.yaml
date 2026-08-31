@@ -72,12 +72,12 @@ development_status:
   3-3-list-and-delete-sessions: backlog
   epic-3-retrospective: optional
 
-  epic-4: in-progress
+  epic-4: done
   4-1-project-scaffold-and-ci: done
-  4-2-copilotkit-ag-ui-backend-connection: review
-  4-3-chat-layout-and-message-sending: review
-  4-4-message-streaming-and-auto-scroll: review
-  4-5-markdown-rendering-for-assistant-messages: review
+  4-2-copilotkit-ag-ui-backend-connection: done
+  4-3-chat-layout-and-message-sending: done
+  4-4-message-streaming-and-auto-scroll: done
+  4-5-markdown-rendering-for-assistant-messages: done
   epic-4-retrospective: optional
 
   epic-5: done
