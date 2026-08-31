@@ -103,7 +103,7 @@ development_status:
   epic-7-retrospective: optional
 
   epic-8: in-progress
-  8-1-remove-getgeometry-flag-route-always-returns-geojson: in-progress
+  8-1-remove-getgeometry-flag-route-always-returns-geojson: done
   8-2-add-startlabel-endlabel-to-route-tool: backlog
   epic-8-retrospective: optional
 

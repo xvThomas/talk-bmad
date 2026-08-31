@@ -8,6 +8,11 @@
 - D6: `package.json` sans `engines.pnpm` — hors AC
 - D7: Pas de seuils de coverage dans vitest — hors AC
 - D8: `.nvmrc` "22" vs engines `>=22.12.0` — incohérence mineure, intentionnelle
+
+## Deferred from: code review of 8-1-remove-getgeometry-flag-route-always-returns-geojson (2026-08-31)
+
+- ~~D1: No nil guard for `result.Geometry` when IGN API omits geometry~~ — **resolved**: added nil guard in `Call()` + `TestRouteTool_Call_NilGeometry`
+- ~~D2: Other successful-path test mocks don't include geometry in mock response~~ — **resolved**: all 4 mocks now include `Geometry`
 - D9: TanStack Router plugin Vite manquant — routes pré-générées et committées, intentionnel
 
 ## Deferred from: code review of 2-5-mcp-connection-resilience.md (2026-07-02)

@@ -4,7 +4,7 @@ baseline_commit: dc45780740b4e7108362da78b2a51dbb0f7530d2
 
 # Story 8.1: Remove `getGeometry` flag — `route` always returns GeoJSON geometry
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -28,26 +28,33 @@ so that map visualization works reliably in all deployments and the codebase is 
 
 ## Tasks / Subtasks
 
-- [ ] Remove `getGeometry bool` field from `RouteTool` struct (AC: 1, 2, 3)
-  - [ ] Remove field from struct definition in `route_tool.go`
-  - [ ] Remove `getGeometry` parameter from `NewRouteTool` signature
-  - [ ] Remove `getGeometry` parameter from `newRouteToolWithBaseURL` signature
-  - [ ] Replace `GetGeometry: t.getGeometry` with `GetGeometry: true` in `Call()`
-  - [ ] Remove the conditional `if t.getGeometry { geometry = result.Geometry }` block — always assign `result.Geometry`
-- [ ] Remove `GetGeoJSONGeometry` from config (AC: 4, 5)
-  - [ ] Delete field from `ServerEnv` struct in `config.go`
-  - [ ] Delete `GET_GEOJSON_GEOMETRY` env var load in `LoadServerEnv`
-- [ ] Update `cmd/main.go` (AC: 9)
-  - [ ] Change `NewRouteTool(navLimiter, env.GetGeoJSONGeometry)` → `NewRouteTool(navLimiter)`
-- [ ] Update `.env.example` (AC: 6)
-  - [ ] Remove `GET_GEOJSON_GEOMETRY` line and its preceding comment block
-- [ ] Update `README.md` (AC: 7)
-  - [ ] Change route tool description to say geometry is always returned (remove "optionally" / `GET_GEOJSON_GEOMETRY` reference)
-- [ ] Update tests (AC: 9, 10, 11)
-  - [ ] `route_tool_test.go`: update all `NewRouteTool(limiter, ...)` → `NewRouteTool(limiter)` and all `newRouteToolWithBaseURL(..., true/false)` → drop bool arg
-  - [ ] `route_tool_test.go`: assert `result.Geometry != nil` in `TestRouteTool_Call_Success`
-  - [ ] `cmd/main_test.go`: remove `TestBuildApp_WithGeoJSONGeometry` (tests a param that no longer exists)
-  - [ ] `internal/config/config_test.go`: remove `TestLoadServerEnv_GetGeoJSONGeometry` and remove `GetGeoJSONGeometry` assertion from `TestLoadServerEnv_NoFileNoVars`
+- [x] Remove `getGeometry bool` field from `RouteTool` struct (AC: 1, 2, 3)
+  - [x] Remove field from struct definition in `route_tool.go`
+  - [x] Remove `getGeometry` parameter from `NewRouteTool` signature
+  - [x] Remove `getGeometry` parameter from `newRouteToolWithBaseURL` signature
+  - [x] Replace `GetGeometry: t.getGeometry` with `GetGeometry: true` in `Call()`
+  - [x] Remove the conditional `if t.getGeometry { geometry = result.Geometry }` block — always assign `result.Geometry`
+- [x] Remove `GetGeoJSONGeometry` from config (AC: 4, 5)
+  - [x] Delete field from `ServerEnv` struct in `config.go`
+  - [x] Delete `GET_GEOJSON_GEOMETRY` env var load in `LoadServerEnv`
+- [x] Update `cmd/main.go` (AC: 9)
+  - [x] Change `NewRouteTool(navLimiter, env.GetGeoJSONGeometry)` → `NewRouteTool(navLimiter)`
+- [x] Update `.env.example` (AC: 6)
+  - [x] Remove `GET_GEOJSON_GEOMETRY` line and its preceding comment block
+- [x] Update `README.md` (AC: 7)
+  - [x] Change route tool description to say geometry is always returned (remove "optionally" / `GET_GEOJSON_GEOMETRY` reference)
+- [x] Update tests (AC: 9, 10, 11)
+  - [x] `route_tool_test.go`: update all `NewRouteTool(limiter, ...)` → `NewRouteTool(limiter)` and all `newRouteToolWithBaseURL(..., true/false)` → drop bool arg
+  - [x] `route_tool_test.go`: assert `result.Geometry != nil` in `TestRouteTool_Call_Success`
+  - [x] `cmd/main_test.go`: remove `TestBuildApp_WithGeoJSONGeometry` (tests a param that no longer exists)
+  - [x] `internal/config/config_test.go`: remove `TestLoadServerEnv_GetGeoJSONGeometry` and remove `GetGeoJSONGeometry` assertion from `TestLoadServerEnv_NoFileNoVars`
+
+### Review Findings
+
+- [x] [Review][Patch] README route tool description still says "optionally GeoJSON geometry" [README.md:50] — AC7 not fully satisfied
+- [x] [Review][Patch] README configuration table still lists `GET_GEOJSON_GEOMETRY` env var [README.md:92] — AC7 not fully satisfied
+- [x] [Review][Defer→Fixed] No nil guard for geometry when IGN API omits it — fixed: added nil guard + test
+- [x] [Review][Defer→Fixed] Other successful-path test mocks don't include geometry — fixed: all mocks now include geometry
 
 ## Dev Notes
 
@@ -240,4 +247,24 @@ Claude Sonnet 4.6
 
 ### Completion Notes List
 
+- Removed `getGeometry bool` field from `RouteTool` struct; `NewRouteTool` and `newRouteToolWithBaseURL` now take no geometry flag.
+- `Call()` unconditionally passes `GetGeometry: true` to the IGN API and assigns `result.Geometry` directly to the output.
+- `ServerEnv.GetGeoJSONGeometry` field removed; `strings` and `os` imports in `config.go` removed with it.
+- `cmd/main.go` updated to call `NewRouteTool(navLimiter)` without env flag.
+- `TestBuildApp_WithGeoJSONGeometry` and `TestLoadServerEnv_GetGeoJSONGeometry` deleted; `GET_GEOJSON_GEOMETRY` removed from `clearEnv` list.
+- `TestRouteTool_Call_Success` mock response extended with a `Geometry` field; assertion `result.Geometry != nil` added.
+- All 9 `newRouteToolWithBaseURL`/`NewRouteTool` test call sites updated to drop the bool arg.
+- `.env.example`: `GET_GEOJSON_GEOMETRY` block removed.
+- `README.md`: route output description updated — geometry is always returned, no env flag mentioned.
+- `go test ./mcp-ign-nav/...` — all packages pass (cmd, config, tools).
+
 ### File List
+
+- `mcp-ign-nav/internal/tools/route_tool.go`
+- `mcp-ign-nav/internal/tools/route_tool_test.go`
+- `mcp-ign-nav/internal/config/config.go`
+- `mcp-ign-nav/internal/config/config_test.go`
+- `mcp-ign-nav/cmd/main.go`
+- `mcp-ign-nav/cmd/main_test.go`
+- `mcp-ign-nav/.env.example`
+- `mcp-ign-nav/README.md`
