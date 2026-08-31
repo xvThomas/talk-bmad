@@ -37,6 +37,7 @@ PROJECTS = {
             "1": "35409a15",
             "2": "f8252ca9",
             "3": "b4cd44b4",
+            "8": "616b70e8",
         },
         "epic_range": range(1, 4),
     },
@@ -57,6 +58,7 @@ PROJECTS = {
             "5": "0c4727f6",
             "6": "b0b9eafe",
             "7": "77243781",
+            "9": "f3a13ecd",
         },
         "epic_range": range(4, 8),
     },
@@ -118,10 +120,10 @@ def yaml_key_to_story_key(yaml_key: str) -> str | None:
 
 
 def story_key_to_project(story_key: str) -> str | None:
-    """Return 'backend' or 'frontend' based on leading epic number."""
+    """Return 'backend' or 'frontend' for the given story key."""
     first = int(story_key.split(".")[0])
     for name, cfg in PROJECTS.items():
-        if first in cfg["epic_range"]:
+        if first in cfg["epic_range"] or str(first) in cfg["epic_options"]:
             return name
     return None
 

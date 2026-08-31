@@ -17,7 +17,8 @@ This document provides the complete epic and story breakdown for the talk projec
 
 - **Epics 1–3:** Backend (`talk serve`) — AG-UI server, MCP tool execution, session persistence
 - **Epics 4–7:** Frontend (`talk-ui`) — CopilotKit React app, chat UX, production transport
-- **Epic 8:** Map visualization of itineraries — `mcp-ign-nav` geometry support (8-BE) + `talk-ui` MapLibre panel (8-FE)
+- **Epic 8:** `mcp-ign-nav` — route tool geometry support (backend)
+- **Epic 9:** `talk-ui` — MapLibre map visualization panel (frontend)
 
 ## Requirements Inventory
 
@@ -135,31 +136,31 @@ This document provides the complete epic and story breakdown for the talk projec
 | IGN-FR-5    | 8.2    | Add `StartLabel`/`EndLabel` to `RouteToolInput`                   |
 | IGN-FR-6    | 8.2    | Echo labels in `RouteToolOutput`                                  |
 | IGN-FR-7    | 8.2    | `DistanceTimeToolInput/Output` not extended                       |
-| MAP-FR-1    | 8.3    | Split layout, `ChatView` unmodified                               |
-| MAP-FR-2    | 8.3    | Map panel hidden at session start                                 |
-| MAP-FR-3    | 8.3    | Auto-open on new itinerary                                        |
-| MAP-FR-4    | 8.3    | Manual toggle                                                     |
-| MAP-FR-5    | 8.3    | Close does not discard state                                      |
-| MAP-FR-6    | 8.3    | `MapProvider` independent context                                 |
-| MAP-FR-7    | 8.3    | `ToolResultMapper` dispatch                                       |
-| MAP-FR-8    | 8.3    | `MapFeature`/`ToolResultMapper` types isolated                    |
-| MAP-FR-9    | 8.3    | Session reset clears map state                                    |
-| MAP-FR-10   | 8.4    | MapLibre + IGN Geopf base layer                                   |
-| MAP-FR-11   | 8.4    | LineString layer per itinerary, lazy-load                         |
-| MAP-FR-12   | 8.4    | Opacity differentiation selected vs. unselected                   |
-| MAP-FR-13   | 8.4    | Start marker                                                      |
-| MAP-FR-14   | 8.4    | End marker                                                        |
-| MAP-FR-15   | 8.4    | Intermediate waypoint markers                                     |
-| MAP-FR-16   | 8.4    | Viewport bbox auto-fit                                            |
-| MAP-FR-17   | 8.5    | Legend panel                                                      |
-| MAP-FR-18   | 8.5    | Legend entry format + fallback                                    |
-| MAP-FR-19   | 8.5    | Résumé / Étapes tabs                                              |
-| MAP-FR-20   | 8.5    | Étapes step list                                                  |
-| MAP-FR-21   | 8.5    | Click legend entry interaction                                    |
-| MAP-FR-22   | 8.5    | Click step → re-center                                            |
-| MAP-FR-23   | 8.5    | Active legend entry styling                                       |
-| MAP-FR-24   | 8.5    | `routeToolMapper` adapter                                         |
-| MAP-FR-25   | 8.5    | Adapter registered at app root                                    |
+| MAP-FR-1    | 9.1    | Split layout, `ChatView` unmodified                               |
+| MAP-FR-2    | 9.1    | Map panel hidden at session start                                 |
+| MAP-FR-3    | 9.1    | Auto-open on new itinerary                                        |
+| MAP-FR-4    | 9.1    | Manual toggle                                                     |
+| MAP-FR-5    | 9.1    | Close does not discard state                                      |
+| MAP-FR-6    | 9.1    | `MapProvider` independent context                                 |
+| MAP-FR-7    | 9.1    | `ToolResultMapper` dispatch                                       |
+| MAP-FR-8    | 9.1    | `MapFeature`/`ToolResultMapper` types isolated                    |
+| MAP-FR-9    | 9.1    | Session reset clears map state                                    |
+| MAP-FR-10   | 9.2    | MapLibre + IGN Geopf base layer                                   |
+| MAP-FR-11   | 9.2    | LineString layer per itinerary, lazy-load                         |
+| MAP-FR-12   | 9.2    | Opacity differentiation selected vs. unselected                   |
+| MAP-FR-13   | 9.2    | Start marker                                                      |
+| MAP-FR-14   | 9.2    | End marker                                                        |
+| MAP-FR-15   | 9.2    | Intermediate waypoint markers                                     |
+| MAP-FR-16   | 9.2    | Viewport bbox auto-fit                                            |
+| MAP-FR-17   | 9.3    | Legend panel                                                      |
+| MAP-FR-18   | 9.3    | Legend entry format + fallback                                    |
+| MAP-FR-19   | 9.3    | Résumé / Étapes tabs                                              |
+| MAP-FR-20   | 9.3    | Étapes step list                                                  |
+| MAP-FR-21   | 9.3    | Click legend entry interaction                                    |
+| MAP-FR-22   | 9.3    | Click step → re-center                                            |
+| MAP-FR-23   | 9.3    | Active legend entry styling                                       |
+| MAP-FR-24   | 9.3    | `routeToolMapper` adapter                                         |
+| MAP-FR-25   | 9.3    | Adapter registered at app root                                    |
 
 ## Epic List
 
@@ -566,13 +567,20 @@ The user sees tool calls in progress, can continue after an interrupt, cancel a 
 
 The app uses its own SSE client instead of `agents__unsafe_dev_only`, removing the CopilotKit Enterprise license dependency.
 **FRs covered:** Production architecture (no new user-facing FRs)
-### Epic 8: Map Visualization of Itineraries
+### Epic 8: `mcp-ign-nav` — Route Tool Geometry Support
 
-Users see itineraries returned by the `route` MCP tool plotted on an interactive map panel alongside the conversation. The map infrastructure is tool-agnostic (extensible via `ToolResultMapper`).
-**Codebase:** `mcp-ign-nav` (Stories 8.1–8.2) + `talk-ui` (Stories 8.3–8.5)
-**Source PRDs:** `prd-map-backend-2026-08-31`, `prd-map-frontend-2026-08-31`
+The `route` tool unconditionally returns GeoJSON geometry and optional place-name labels, enabling frontend map rendering without environment configuration.
+**Codebase:** `mcp-ign-nav`
+**Source PRD:** `prd-map-backend-2026-08-31`
+**FRs covered:** IGN-FR-1 to IGN-FR-7
+
+### Epic 9: `talk-ui` — MapLibre Map Visualization Panel
+
+Users see itineraries plotted on an interactive MapLibre GL JS map panel alongside the conversation. The map infrastructure is tool-agnostic (extensible via `ToolResultMapper`).
+**Codebase:** `talk-ui`
+**Source PRD:** `prd-map-frontend-2026-08-31`
 **Architecture:** `adr-001-map-visualization-architecture.md`
-**FRs covered:** IGN-FR-1 to IGN-FR-7, MAP-FR-1 to MAP-FR-25
+**FRs covered:** MAP-FR-1 to MAP-FR-25
 ---
 
 ## Epic 4: Basic Functional Conversation (talk-ui)
@@ -1111,10 +1119,19 @@ So that the frontend can display a meaningful legend label without performing re
 
 ---
 
-### Story 8.3: Split layout + `MapProvider` + session itinerary state
+## Epic 9: `talk-ui` — MapLibre Map Visualization Panel
+
+Users see itineraries plotted on an interactive MapLibre GL JS map panel alongside the conversation. The backend is fully decoupled from chat components via a `MapProvider` / `ToolResultMapper` pattern, making it reusable for any future geo-aware MCP tool.
+
+**Prerequisites:** Epic 8 complete (geometry + labels in `route` output)
+**Execution order:** 9.1 → 9.2 → 9.3
+
+---
+
+### Story 9.1: Split layout + `MapProvider` + session itinerary state
 
 **Codebase:** `talk-ui`
-**Dependencies:** Story 8.1 (geometry in `route` output), Story 8.2 (labels in `route` output)
+**Dependencies:** Epic 8 (geometry in `route` output)
 
 As an end user,
 I want a map panel to appear automatically alongside my conversation when a route is returned,
@@ -1168,10 +1185,10 @@ So that I can immediately see the itinerary without any manual action.
 
 ---
 
-### Story 8.4: Map rendering — MapLibre GL JS, IGN tiles, routes and markers
+### Story 9.2: Map rendering — MapLibre GL JS, IGN tiles, routes and markers
 
 **Codebase:** `talk-ui`
-**Dependencies:** Story 8.3 (`MapProvider` + `MapFeature` available)
+**Dependencies:** Story 9.1 (`MapProvider` + `MapFeature` available)
 
 As an end user,
 I want to see my itinerary drawn on an interactive map with clear start and end markers,
@@ -1217,10 +1234,10 @@ So that I can spatially understand the route.
 
 ---
 
-### Story 8.5: Legend panel — Résumé / Étapes tabs, selection, and step re-center
+### Story 9.3: Legend panel — Résumé / Étapes tabs, selection, and step re-center
 
 **Codebase:** `talk-ui`
-**Dependencies:** Story 8.4 (map renders features; selection opacity behavior in place)
+**Dependencies:** Story 9.2 (map renders features; selection opacity behavior in place)
 
 As an end user,
 I want a legend panel that lists all my itineraries and lets me explore turn-by-turn steps,

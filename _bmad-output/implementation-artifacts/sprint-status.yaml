@@ -42,7 +42,7 @@
 #   composition"). Key below follows the file on disk (ground truth), not the epics.md title.
 
 generated: 2026-07-30
-last_updated: 2026-07-30
+last_updated: 2026-08-31
 project: talk-bmad
 project_key: NOKEY
 tracking_system: file-system
@@ -101,3 +101,14 @@ development_status:
   7-3-client-unit-tests-and-migration: backlog
   7-4-client-side-conversation-persistence-post-migration: backlog
   epic-7-retrospective: optional
+
+  epic-8: in-progress
+  8-1-remove-getgeometry-flag-route-always-returns-geojson: in-progress
+  8-2-add-startlabel-endlabel-to-route-tool: backlog
+  epic-8-retrospective: optional
+
+  epic-9: backlog
+  9-1-split-layout-mapprovider-session-state: backlog
+  9-2-map-rendering-maplibre-ign-tiles-routes-markers: backlog
+  9-3-legend-panel-resume-etapes-tabs-selection-interactions: backlog
+  epic-9-retrospective: optional
