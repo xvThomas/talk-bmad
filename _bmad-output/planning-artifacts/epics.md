@@ -3,6 +3,9 @@ stepsCompleted: [step-01, step-02, step-03]
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-talk-bmad-2026-06-21/prd.md
   - _bmad-output/planning-artifacts/prds/prd-talk-frontend-2026-06-28/prd.md
+  - _bmad-output/planning-artifacts/prds/prd-map-backend-2026-08-31/prd.md
+  - _bmad-output/planning-artifacts/prds/prd-map-frontend-2026-08-31/prd.md
+  - _bmad-output/planning-artifacts/adr/adr-001-map-visualization-architecture.md
   - _bmad-output/project-context.md
 ---
 
@@ -14,6 +17,7 @@ This document provides the complete epic and story breakdown for the talk projec
 
 - **Epics 1–3:** Backend (`talk serve`) — AG-UI server, MCP tool execution, session persistence
 - **Epics 4–7:** Frontend (`talk-ui`) — CopilotKit React app, chat UX, production transport
+- **Epic 8:** Map visualization of itineraries — `mcp-ign-nav` geometry support (8-BE) + `talk-ui` MapLibre panel (8-FE)
 
 ## Requirements Inventory
 
@@ -81,6 +85,81 @@ This document provides the complete epic and story breakdown for the talk projec
 | FR-9   | Epic 3 | Delete session                                                        |
 | FR-10  | Epic 3 | Emit messages snapshot                                                |
 | FR-11  | Epic 3 | Load history for LLM context                                          |
+
+### mcp-ign-nav Requirements (Epic 8 — Backend)
+
+- IGN-FR-1: `route` tool unconditionally requests GeoJSON geometry (no flag)
+- IGN-FR-2: `GetGeoJSONGeometry` field and `GET_GEOJSON_GEOMETRY` env var removed from `ServerEnv`
+- IGN-FR-3: `DistanceTimeTool` unchanged — no geometry, no labels
+- IGN-FR-4: Route tool tests updated for removed constructor parameter
+- IGN-FR-5: `RouteToolInput` gains optional `StartLabel` and `EndLabel` string fields
+- IGN-FR-6: `RouteToolOutput` echoes `StartLabel`/`EndLabel` verbatim from input
+- IGN-FR-7: `DistanceTimeToolInput/Output` not extended
+
+### Map Visualization Requirements (Epic 8 — Frontend)
+
+- MAP-FR-1: Split layout — chat left, collapsible map panel right; `ChatView` unmodified
+- MAP-FR-2: Map panel hidden by default at session start
+- MAP-FR-3: Map panel auto-opens when a new itinerary arrives
+- MAP-FR-4: User can manually toggle map panel open/closed
+- MAP-FR-5: Closing panel does not discard itinerary state
+- MAP-FR-6: `MapProvider` context independent of `ChatUIContext`; maintains `MapFeature[]`, `selectedFeatureId`, `isMapPanelOpen`
+- MAP-FR-7: `MapProvider` accepts `mappers: ToolResultMapper[]` prop; detects tool results and applies matching mapper
+- MAP-FR-8: `ToolResultMapper` and `MapFeature` interfaces in `src/map/types.ts`; no dependency on chat components
+- MAP-FR-9: Session reset clears all features and closes map panel
+- MAP-FR-10: MapLibre GL JS via `react-map-gl`; IGN Geopf raster WMTS base layer; no API key required
+- MAP-FR-11: Each itinerary `LineString` rendered as a layer with auto-generated color; `MapPanel` lazy-loaded
+- MAP-FR-12: Unselected routes at ≈40% opacity; selected route at full opacity + increased weight
+- MAP-FR-13: Route start point rendered as prominent marker (green)
+- MAP-FR-14: Route end point rendered as prominent marker (red), distinct from start
+- MAP-FR-15: Intermediate waypoints rendered as smaller, discreet markers
+- MAP-FR-16: Viewport auto-fits to new itinerary bbox; no selection → fits all itineraries
+- MAP-FR-17: Legend panel embedded in map view; lists all session itineraries
+- MAP-FR-18: Each legend entry: `StartLabel → EndLabel (profile, optimization)`, formatted distance, formatted duration; fallback to coordinates
+- MAP-FR-19: Legend has two tabs: **Résumé** (per-itinerary) and **Étapes** (steps for selected itinerary)
+- MAP-FR-20: Étapes tab lists each `RouteStep`: instruction, modifier, road name/number, distance, duration
+- MAP-FR-21: Click legend entry → select itinerary, fit bbox, full opacity, dim others
+- MAP-FR-22: Click step (Étapes tab) → re-center map on step start coordinates
+- MAP-FR-23: Selected legend entry visually marked as active
+- MAP-FR-24: `routeToolMapper` adapter in `src/map/adapters/route-tool-mapper.ts`; transforms `RouteToolOutput` → `MapFeature`
+- MAP-FR-25: `routeToolMapper` registered in `MapProvider` at app root; no chat component imports it
+
+### Epic 8 FR Coverage Map
+
+| FR          | Story  | Description                                                       |
+| ----------- | ------ | ----------------------------------------------------------------- |
+| IGN-FR-1    | 8.1    | `route` always returns geometry                                   |
+| IGN-FR-2    | 8.1    | Remove `GetGeoJSONGeometry` / `GET_GEOJSON_GEOMETRY`              |
+| IGN-FR-3    | 8.1    | `DistanceTimeTool` unchanged                                      |
+| IGN-FR-4    | 8.1    | Update route tool tests                                           |
+| IGN-FR-5    | 8.2    | Add `StartLabel`/`EndLabel` to `RouteToolInput`                   |
+| IGN-FR-6    | 8.2    | Echo labels in `RouteToolOutput`                                  |
+| IGN-FR-7    | 8.2    | `DistanceTimeToolInput/Output` not extended                       |
+| MAP-FR-1    | 8.3    | Split layout, `ChatView` unmodified                               |
+| MAP-FR-2    | 8.3    | Map panel hidden at session start                                 |
+| MAP-FR-3    | 8.3    | Auto-open on new itinerary                                        |
+| MAP-FR-4    | 8.3    | Manual toggle                                                     |
+| MAP-FR-5    | 8.3    | Close does not discard state                                      |
+| MAP-FR-6    | 8.3    | `MapProvider` independent context                                 |
+| MAP-FR-7    | 8.3    | `ToolResultMapper` dispatch                                       |
+| MAP-FR-8    | 8.3    | `MapFeature`/`ToolResultMapper` types isolated                    |
+| MAP-FR-9    | 8.3    | Session reset clears map state                                    |
+| MAP-FR-10   | 8.4    | MapLibre + IGN Geopf base layer                                   |
+| MAP-FR-11   | 8.4    | LineString layer per itinerary, lazy-load                         |
+| MAP-FR-12   | 8.4    | Opacity differentiation selected vs. unselected                   |
+| MAP-FR-13   | 8.4    | Start marker                                                      |
+| MAP-FR-14   | 8.4    | End marker                                                        |
+| MAP-FR-15   | 8.4    | Intermediate waypoint markers                                     |
+| MAP-FR-16   | 8.4    | Viewport bbox auto-fit                                            |
+| MAP-FR-17   | 8.5    | Legend panel                                                      |
+| MAP-FR-18   | 8.5    | Legend entry format + fallback                                    |
+| MAP-FR-19   | 8.5    | Résumé / Étapes tabs                                              |
+| MAP-FR-20   | 8.5    | Étapes step list                                                  |
+| MAP-FR-21   | 8.5    | Click legend entry interaction                                    |
+| MAP-FR-22   | 8.5    | Click step → re-center                                            |
+| MAP-FR-23   | 8.5    | Active legend entry styling                                       |
+| MAP-FR-24   | 8.5    | `routeToolMapper` adapter                                         |
+| MAP-FR-25   | 8.5    | Adapter registered at app root                                    |
 
 ## Epic List
 
@@ -487,7 +566,13 @@ The user sees tool calls in progress, can continue after an interrupt, cancel a 
 
 The app uses its own SSE client instead of `agents__unsafe_dev_only`, removing the CopilotKit Enterprise license dependency.
 **FRs covered:** Production architecture (no new user-facing FRs)
+### Epic 8: Map Visualization of Itineraries
 
+Users see itineraries returned by the `route` MCP tool plotted on an interactive map panel alongside the conversation. The map infrastructure is tool-agnostic (extensible via `ToolResultMapper`).
+**Codebase:** `mcp-ign-nav` (Stories 8.1–8.2) + `talk-ui` (Stories 8.3–8.5)
+**Source PRDs:** `prd-map-backend-2026-08-31`, `prd-map-frontend-2026-08-31`
+**Architecture:** `adr-001-map-visualization-architecture.md`
+**FRs covered:** IGN-FR-1 to IGN-FR-7, MAP-FR-1 to MAP-FR-25
 ---
 
 ## Epic 4: Basic Functional Conversation (talk-ui)
@@ -942,3 +1027,259 @@ So that I can continue my flow without losing context during development and loc
 **When** persistence is implemented
 **Then** persistence hooks into the app-level UI context/store (not transport-specific internals)
 **And** the implementation remains transport-agnostic for future evolution
+
+---
+
+## Epic 8: Map Visualization of Itineraries
+
+Users see itineraries returned by the `route` MCP tool plotted on an interactive map panel alongside the conversation. The backend always returns GeoJSON geometry; the frontend renders it with MapLibre GL JS on an IGN Geopf base map. The map infrastructure is fully decoupled from chat components via a `MapProvider` / `ToolResultMapper` pattern, making it reusable for any future geo-aware MCP tool.
+
+**Prerequisites:** none (8.1 and 8.2 are self-contained `mcp-ign-nav` changes)
+**Execution order:** 8.1 → 8.2 → 8.3 → 8.4 → 8.5
+
+---
+
+### Story 8.1: Remove `getGeometry` flag — `route` always returns GeoJSON geometry
+
+**Codebase:** `mcp-ign-nav`
+
+As a platform operator,
+I want the `route` tool to always return GeoJSON geometry without any environment configuration,
+So that map visualization works reliably in all deployments and the codebase is simpler.
+
+**Acceptance Criteria:**
+
+**Given** the current `RouteTool` with a `getGeometry bool` constructor parameter
+**When** story 8.1 is implemented
+**Then** `NewRouteTool(limiter *rate.Limiter)` takes no `getGeometry` parameter
+**And** the tool unconditionally sets `GetGeometry: true` in the IGN API request
+**And** `RouteToolOutput.Geometry` is always populated (never nil for a successful call)
+
+**Given** `ServerEnv` currently has a `GetGeoJSONGeometry bool` field
+**When** story 8.1 is implemented
+**Then** the field is removed from `ServerEnv`
+**And** `GET_GEOJSON_GEOMETRY` is no longer read from the environment
+**And** the field is removed from `.env.example` and any README section that documents it
+
+**Given** `DistanceTimeTool`
+**When** story 8.1 is implemented
+**Then** it is unchanged — it continues to request no geometry and return no geometry
+
+**Given** existing tests that call `NewRouteTool(limiter, false)` or `NewRouteTool(limiter, true)`
+**When** story 8.1 is implemented
+**Then** all call sites are updated to `NewRouteTool(limiter)`
+**And** tests asserting the absence of geometry are removed
+**And** the full test suite passes
+
+**FRs:** IGN-FR-1, IGN-FR-2, IGN-FR-3, IGN-FR-4
+
+---
+
+### Story 8.2: Add `StartLabel`/`EndLabel` to route tool input and output
+
+**Codebase:** `mcp-ign-nav`
+
+As an LLM agent,
+I want to pass the human-readable place names I already know into the `route` tool call,
+So that the frontend can display a meaningful legend label without performing reverse geocoding.
+
+**Acceptance Criteria:**
+
+**Given** `RouteToolInput`
+**When** story 8.2 is implemented
+**Then** it has two new optional fields: `StartLabel string` (json: `"startLabel,omitempty"`) and `EndLabel string` (json: `"endLabel,omitempty"`)
+**And** their `description` struct tags instruct the LLM to populate them with the human-readable origin and destination names it resolved during prior geocoding
+**And** both fields are optional — calls without them continue to work
+
+**Given** `RouteToolOutput`
+**When** story 8.2 is implemented
+**Then** it has two new fields: `StartLabel string` (json: `"startLabel,omitempty"`) and `EndLabel string` (json: `"endLabel,omitempty"`)
+**And** both fields echo the corresponding input values verbatim
+**And** if input fields are empty, output fields are also empty (no processing)
+
+**Given** `DistanceTimeToolInput` and `DistanceTimeToolOutput`
+**When** story 8.2 is implemented
+**Then** they are unchanged — labels are only meaningful when geometry is present
+
+**Given** existing route tool tests
+**When** story 8.2 is implemented
+**Then** a new test asserts that non-empty input labels are echoed in the output
+**And** a test asserts that empty input labels produce empty output labels
+**And** all existing tests continue to pass
+
+**FRs:** IGN-FR-5, IGN-FR-6, IGN-FR-7
+
+---
+
+### Story 8.3: Split layout + `MapProvider` + session itinerary state
+
+**Codebase:** `talk-ui`
+**Dependencies:** Story 8.1 (geometry in `route` output), Story 8.2 (labels in `route` output)
+
+As an end user,
+I want a map panel to appear automatically alongside my conversation when a route is returned,
+So that I can immediately see the itinerary without any manual action.
+
+**Acceptance Criteria:**
+
+**Given** the existing `ChatView` component
+**When** story 8.3 is implemented
+**Then** `ChatView` is wrapped in a layout container that places the map panel to its right
+**And** `ChatView` itself is not modified (no new props, no new imports)
+**And** the layout container accepts a `mapPanelOpen: boolean` prop to show/hide the map panel area
+
+**Given** the application starts with no conversation
+**When** the map panel state is initialized
+**Then** `isMapPanelOpen` is `false` and `itineraries` is an empty array
+**And** the map panel area is not rendered (not merely hidden)
+
+**Given** the `route` tool returns a result in the message stream
+**When** `MapProvider` processes `agent.messages`
+**Then** the result is passed through the `routeToolMapper` (registered at app root)
+**And** a new `MapFeature` is added to `itineraries`
+**And** if `isMapPanelOpen` was `false`, it is set to `true`
+
+**Given** the user clicks the map panel toggle control
+**When** it is currently open
+**Then** `isMapPanelOpen` becomes `false` and the panel area collapses
+**And** the itinerary state is preserved
+
+**Given** the user closes then re-opens the panel
+**When** the panel reopens
+**Then** the previously accumulated itineraries are still displayed
+
+**Given** `MapProvider` internal implementation
+**When** story 8.3 is implemented
+**Then** `ToolResultMapper` and `MapFeature` interfaces live in `src/map/types.ts`
+**And** `src/map/types.ts` has zero imports from chat components
+**And** `MapProvider` depends on `agent.messages` from `@copilotkit/react-core` but not on `ChatUIContext`
+
+**Given** the user resets the conversation (new session)
+**When** the reset is triggered
+**Then** `itineraries` is cleared and `isMapPanelOpen` is set to `false`
+**And** the map panel area is removed from the DOM
+
+**FRs:** MAP-FR-1, MAP-FR-2, MAP-FR-3, MAP-FR-4, MAP-FR-5, MAP-FR-6, MAP-FR-7, MAP-FR-8, MAP-FR-9
+
+**Technical notes:**
+- `MapProvider` and `ChatUIProvider` are siblings in the React tree, composed at `App.tsx`
+- The map panel toggle control can be a simple button on the panel edge or a toolbar icon — visual design is implementation choice
+- `MapFeature.id` should be derived from the AG-UI `toolCallId` to ensure uniqueness and idempotency (reprocessing the same message does not duplicate features)
+
+---
+
+### Story 8.4: Map rendering — MapLibre GL JS, IGN tiles, routes and markers
+
+**Codebase:** `talk-ui`
+**Dependencies:** Story 8.3 (`MapProvider` + `MapFeature` available)
+
+As an end user,
+I want to see my itinerary drawn on an interactive map with clear start and end markers,
+So that I can spatially understand the route.
+
+**Acceptance Criteria:**
+
+**Given** `MapPanel` is rendered for the first time
+**When** the map initializes
+**Then** it uses MapLibre GL JS via `react-map-gl`
+**And** the base layer is the IGN Geopf Plan IGN v2 raster WMTS tile layer
+**And** no API key is required to load the tiles
+**And** `MapPanel` is lazy-loaded via React `lazy` + `Suspense`
+
+**Given** one or more `MapFeature` objects in `MapProvider` state
+**When** `MapPanel` renders
+**Then** each feature's `geometry` (GeoJSON `LineString`) is rendered as a `<Source type="geojson">` + `<Layer type="line">`
+**And** each feature has an auto-generated color distinct from others (minimum 4 visually distinct colors before cycling)
+**And** the unselected features are rendered at ≈40% opacity
+**And** the selected feature is rendered at 100% opacity with a slightly increased line weight
+
+**Given** a new `MapFeature` is added
+**When** the map updates
+**Then** the viewport fits to the new feature's `bbox` using MapLibre's `fitBounds`
+
+**Given** no feature is selected and multiple features exist
+**When** the map renders
+**Then** the viewport fits the combined bounding box of all features
+
+**Given** a `MapFeature` with `geometry.type === "LineString"`
+**When** the feature is rendered
+**Then** the first coordinate is rendered as a prominent start marker (green circle, larger)
+**And** the last coordinate is rendered as a prominent end marker (red circle, larger)
+**And** any intermediate waypoint coordinates (derived from `properties.portions` start/end points) are rendered as smaller neutral-color dot markers
+
+**FRs:** MAP-FR-10, MAP-FR-11, MAP-FR-12, MAP-FR-13, MAP-FR-14, MAP-FR-15, MAP-FR-16
+
+**Technical notes:**
+- Use `react-map-gl` with `mapLib` prop pointing to MapLibre GL JS (not Mapbox)
+- IGN Geopf WMTS tile URL pattern: `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}`
+- Auto-color palette: derive from a fixed hue-spaced list (e.g., `["#2196F3", "#FF5722", "#4CAF50", "#9C27B0", "#FF9800"]`), indexed by feature order
+- Intermediate waypoints are identified from `MapFeature.properties.portions`: each portion's `start` coordinate (except the first, which is the route start) is a waypoint
+
+---
+
+### Story 8.5: Legend panel — Résumé / Étapes tabs, selection, and step re-center
+
+**Codebase:** `talk-ui`
+**Dependencies:** Story 8.4 (map renders features; selection opacity behavior in place)
+
+As an end user,
+I want a legend panel that lists all my itineraries and lets me explore turn-by-turn steps,
+So that I can identify routes, compare them, and navigate the map with precision.
+
+**Acceptance Criteria:**
+
+**Given** `MapPanel` with one or more features
+**When** it renders
+**Then** a legend panel is displayed on the right side of the map
+**And** it has two tabs: **Résumé** and **Étapes**
+
+**Given** the **Résumé** tab is active
+**When** it renders
+**Then** each feature appears as one entry showing: `StartLabel → EndLabel (profile, optimization)`, formatted distance (e.g., "461 km"), formatted duration (e.g., "2h28")
+**And** if `StartLabel` or `EndLabel` is empty, the snapped coordinate string is shown as fallback
+**And** the currently selected feature's entry has a distinct active style (highlighted background, bold label)
+
+**Given** the user clicks a legend entry in the **Résumé** tab
+**When** the click is handled
+**Then** `selectedFeatureId` in `MapProvider` is set to that feature's id
+**And** the map viewport fits to that feature's `bbox`
+**And** the clicked entry is styled as active
+**And** all other entries lose their active style
+
+**Given** the **Étapes** tab is active and a feature is selected
+**When** it renders
+**Then** the turn-by-turn steps for the selected feature are listed
+**And** each step shows: instruction type (e.g., "turn"), modifier (e.g., "left"), road name or number, formatted step distance, formatted step duration
+**And** steps are ordered as returned by the `route` tool (from `portions[].steps[]`)
+
+**Given** no feature is selected and the **Étapes** tab is active
+**When** it renders
+**Then** a prompt is shown inviting the user to select a route in the Résumé tab
+
+**Given** the user clicks a step in the **Étapes** tab
+**When** the click is handled
+**Then** the map re-centers on that step's `start` coordinates
+**And** the zoom level is unchanged
+**And** no pin or marker is added to the map
+
+**Given** the `routeToolMapper` adapter (`src/map/adapters/route-tool-mapper.ts`)
+**When** it processes a `RouteToolOutput`
+**Then** it produces one `MapFeature` with:
+  - `id`: the AG-UI `toolCallId`
+  - `label`: `"${startLabel} → ${endLabel} (${profile}, ${optimization})"` (with coordinate fallback)
+  - `geometry`: `RouteToolOutput.geometry` (GeoJSON `LineString`)
+  - `bbox`: `RouteToolOutput.bbox`
+  - `properties`: `{ distance, duration, profile, optimization, portions }` (typed, not `unknown`)
+**And** the adapter has no import dependency on any React component or context
+
+**Given** the `routeToolMapper` is registered in `MapProvider` at app root (`App.tsx`)
+**When** a `route` tool result arrives in `agent.messages`
+**Then** `MapProvider` applies the mapper and the feature appears in the legend without any change to chat components
+
+**FRs:** MAP-FR-17, MAP-FR-18, MAP-FR-19, MAP-FR-20, MAP-FR-21, MAP-FR-22, MAP-FR-23, MAP-FR-24, MAP-FR-25
+
+**Technical notes:**
+- Format distance: `< 1000m` → `"Xm"`, `≥ 1000m` → `"X.X km"` (round to 1 decimal)
+- Format duration: convert seconds → `"Xh YYmin"` or `"Xmin"` if under 1 hour
+- The legend panel width should be fixed (e.g., 280px) and scrollable independently of the map
+- Tab state (Résumé / Étapes) is local component state — not in `MapProvider`
