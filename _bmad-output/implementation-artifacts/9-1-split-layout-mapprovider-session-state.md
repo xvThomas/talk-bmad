@@ -19,13 +19,14 @@ So that I can immediately see the itinerary without any manual action.
 **When** story 9.1 is implemented
 **Then** `ChatView` is wrapped in a `SplitLayout` container that places the map panel area to its right
 **And** `ChatView` itself is not modified — no new props, no new imports, no new hook calls
-**And** `SplitLayout` accepts a `mapPanelOpen: boolean` prop that controls whether the right panel area is rendered (not merely hidden)
+**And** `SplitLayout` accepts a `mapPanelOpen: boolean` prop that controls the width of the right panel area (collapsed to `w-0` when closed, `w-1/2` when open, with a CSS `transition-[width]` for a smooth animation)
 
 **AC#2** — Initial state: panel closed, no itineraries
 **Given** the application starts with no conversation
 **When** `MapProvider` state is initialized
 **Then** `isMapPanelOpen` is `false` and `itineraries` is an empty array
-**And** the map panel area is not rendered in the DOM (not merely invisible — the node is absent)
+**And** the map panel area is collapsed to `width: 0` with `overflow-hidden` — visually absent and non-interactive
+**Note** the DOM node stays mounted; story 9.2 must handle `map.invalidateSize()` and `aria-hidden` when the actual map component is introduced
 
 **AC#3** — Auto-open when a route result arrives
 **Given** the `route` tool returns a result in the message stream
@@ -37,7 +38,7 @@ So that I can immediately see the itinerary without any manual action.
 **AC#4** — Manual toggle preserves state
 **Given** the user clicks the map panel toggle control
 **When** it is currently open
-**Then** `isMapPanelOpen` becomes `false` and the panel area collapses (DOM node removed)
+**Then** `isMapPanelOpen` becomes `false` and the panel animates to `width: 0` (300 ms ease-in-out)
 **And** the itinerary state is preserved (itineraries array unchanged)
 
 **AC#5** — Reopen restores itineraries
@@ -63,7 +64,8 @@ So that I can immediately see the itinerary without any manual action.
 **Given** `MapProvider` re-renders with the same `agent.messages` array
 **When** no new tool results have arrived
 **Then** `itineraries` contains the same `MapFeature` objects (no duplicates)
-**And** each feature's `id` equals the AG-UI `toolCallId` of the `route` result that produced it
+**And** each feature's `id` is `"${toolCallId}-${idx}"` where `toolCallId` is the AG-UI tool call id and `idx` is the zero-based index of the feature within the features returned by the mapper for that call
+**And** this scheme guarantees uniqueness when a mapper returns multiple features for the same tool call
 
 **AC#9** — CI gates
 **Given** the implementation is complete
@@ -252,11 +254,10 @@ const itineraries = useMemo<MapFeature[]>(() => {
     const mapper = mappers.find((m) => m.toolName === toolName);
     if (!mapper) continue;
     const extracted = mapper.toMapFeatures(parsed.content);
-    // Override id with toolCallId for idempotency (AC#8)
     features.push(
       ...extracted.map((f, idx) => ({
         ...f,
-        id: extracted.length === 1 ? toolCallId : `${toolCallId}-${idx}`,
+        id: `${toolCallId}-${idx}`,
       })),
     );
   }
