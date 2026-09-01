@@ -9,7 +9,10 @@ both GitHub projects reflect the current story statuses.
   Frontend : https://github.com/orgs/pixime-net/projects/4
 
 Usage:
-  python3 scripts/sync-github-projects.py [--dry-run]
+  python3 scripts/sync-github-projects.py [--dry-run] [--fix-bodies]
+
+  --fix-bodies  Re-write the body of every existing item from its story file
+                (use after bulk AC changes; normal sync only fills empty bodies)
 
 Requirements:
   gh CLI authenticated with 'project' scope (gh auth refresh -s project).
@@ -81,6 +84,10 @@ EPICS_PATH = (
     Path(__file__).parent.parent
     / "_bmad-output" / "planning-artifacts" / "epics.md"
 )
+IMPL_ARTIFACTS_PATH = (
+    Path(__file__).parent.parent
+    / "_bmad-output" / "implementation-artifacts"
+)
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────
@@ -89,6 +96,23 @@ def run_graphql(query: str) -> dict:
     r = subprocess.run(
         ["gh", "api", "graphql", "-f", f"query={query}"],
         capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        print(f"GraphQL error: {r.stderr[:300]}", file=sys.stderr)
+        sys.exit(1)
+    data = json.loads(r.stdout)
+    if "errors" in data:
+        print(f"GraphQL errors: {data['errors']}", file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def run_graphql_with_vars(query: str, variables: dict) -> dict:
+    """Run a GraphQL query/mutation with variables (safe for arbitrary string values)."""
+    payload = json.dumps({"query": query, "variables": variables})
+    r = subprocess.run(
+        ["gh", "api", "graphql", "--input", "-"],
+        input=payload, capture_output=True, text=True,
     )
     if r.returncode != 0:
         print(f"GraphQL error: {r.stderr[:300]}", file=sys.stderr)
@@ -157,10 +181,36 @@ def title_from_epics(story_key: str) -> str | None:
     return None
 
 
+def body_from_story_file(story_key: str) -> str | None:
+    """Extract the Story and Acceptance Criteria sections from the story file."""
+    key_prefix = story_key.replace(".", "-")
+    # Only match files where the slug starts with a letter (not another digit),
+    # so '1-4-*.md' does not accidentally pick up '1-4-5-unified.md'.
+    pattern = re.compile(rf"^{re.escape(key_prefix)}-[a-zA-Z]", re.IGNORECASE)
+    matches = sorted(
+        f for f in IMPL_ARTIFACTS_PATH.glob(f"{key_prefix}-*.md")
+        if pattern.match(f.name)
+    )
+    if not matches:
+        return None
+    text = matches[0].read_text(encoding="utf-8")
+
+    parts = []
+    m = re.search(r"(## Story\n.*?)(?=\n## |\Z)", text, re.DOTALL)
+    if m:
+        parts.append(m.group(1).strip())
+    # Match '## Acceptance Criteria' or '## Acceptance Criteria (BDD)' etc.
+    m = re.search(r"(## Acceptance Criteria[^\n]*\n.*?)(?=\n## |\Z)", text, re.DOTALL)
+    if m:
+        parts.append(m.group(1).strip())
+
+    return "\n\n".join(parts) if parts else None
+
+
 # ── GitHub queries ───────────────────────────────────────────────────────
 
 def fetch_project_items(project_id: str) -> list[dict]:
-    """Fetch all items with their status and title."""
+    """Fetch all items with their status, title, and body."""
     data = run_graphql(f"""
     query {{
       node(id: "{project_id}") {{
@@ -168,7 +218,7 @@ def fetch_project_items(project_id: str) -> list[dict]:
           items(first: 100) {{
             nodes {{
               id
-              content {{ ... on DraftIssue {{ id title }} }}
+              content {{ ... on DraftIssue {{ id title body }} }}
               fieldValues(first: 20) {{
                 nodes {{
                   ... on ProjectV2ItemFieldSingleSelectValue {{
@@ -205,6 +255,7 @@ def items_by_story_key(nodes: list[dict]) -> dict[str, dict]:
             "pvti_id":     node["id"],
             "di_id":       content.get("id"),
             "title":       title,
+            "body":        content.get("body") or "",
             "status_name": status_name,
         }
     return result
@@ -229,15 +280,33 @@ def update_status(project_id: str, pvti_id: str, field_id: str, option_id: str,
     return "errors" not in data
 
 
-def create_item(proj_number: int, owner: str, title: str, dry_run: bool) -> str | None:
+def update_body(di_id: str, body: str, dry_run: bool) -> bool:
+    """Update the body (description) of a DraftIssue."""
+    if dry_run:
+        return True
+    data = run_graphql_with_vars(
+        """
+        mutation UpdateBody($id: ID!, $body: String!) {
+          updateProjectV2DraftIssue(input: {draftIssueId: $id, body: $body}) {
+            draftIssue { id }
+          }
+        }
+        """,
+        {"id": di_id, "body": body},
+    )
+    return "errors" not in data
+
+
+def create_item(proj_number: int, owner: str, title: str, body: str,
+                dry_run: bool) -> str | None:
     """Create a draft item and return its PVTI_ ID."""
     if dry_run:
         return "DRY_RUN"
-    r = subprocess.run(
-        ["gh", "project", "item-create", str(proj_number),
-         "--owner", owner, "--title", title, "--format", "json"],
-        capture_output=True, text=True,
-    )
+    cmd = ["gh", "project", "item-create", str(proj_number),
+           "--owner", owner, "--title", title, "--format", "json"]
+    if body:
+        cmd += ["--body", body]
+    r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         print(f"  create error: {r.stderr[:200]}", file=sys.stderr)
         return None
@@ -246,7 +315,7 @@ def create_item(proj_number: int, owner: str, title: str, dry_run: bool) -> str 
 
 # ── Main sync ────────────────────────────────────────────────────────────
 
-def sync(dry_run: bool = False) -> None:
+def sync(dry_run: bool = False, fix_bodies: bool = False) -> None:
     prefix = "[DRY-RUN] " if dry_run else ""
     print(f"{prefix}Reading sprint-status.yaml…")
     sprint = parse_sprint_status()
@@ -257,7 +326,7 @@ def sync(dry_run: bool = False) -> None:
         nodes = fetch_project_items(cfg["id"])
         existing = items_by_story_key(nodes)
 
-        updated = created = skipped = 0
+        updated = created = skipped = bodies_fixed = 0
 
         for story_key, raw_status in sorted(
             sprint.items(), key=lambda x: [int(p) for p in x[0].split(".")]
@@ -276,21 +345,34 @@ def sync(dry_run: bool = False) -> None:
                 current_name = (item["status_name"] or "").lower()
                 # Normalise names like "In Progress" → "in-progress"
                 current_key = current_name.replace(" ", "-")
-                if current_key == option_key:
+                needs_status_update = current_key != option_key
+
+                if needs_status_update:
+                    option_id = cfg["status_options"][option_key]
+                    ok = update_status(cfg["id"], item["pvti_id"],
+                                       cfg["status_field"], option_id, dry_run)
+                    status_char = "✓" if ok else "✗"
+                    print(f"  {prefix}{status_char} {story_key}: "
+                          f"{current_key} → {option_key}")
+                    if ok:
+                        updated += 1
+
+                # Fill body if empty, or overwrite if --fix-bodies requested
+                if item.get("di_id") and (fix_bodies or not item["body"]):
+                    body = body_from_story_file(story_key)
+                    if body:
+                        ok = update_body(item["di_id"], body, dry_run)
+                        if ok:
+                            bodies_fixed += 1
+                            print(f"  {prefix}📝 {story_key}: body {'updated' if item['body'] else 'filled'}")
+
+                if not needs_status_update and not (item.get("di_id") and (fix_bodies or not item["body"]) and body_from_story_file(story_key)):
                     skipped += 1
-                    continue
-                option_id = cfg["status_options"][option_key]
-                ok = update_status(cfg["id"], item["pvti_id"],
-                                   cfg["status_field"], option_id, dry_run)
-                status_char = "✓" if ok else "✗"
-                print(f"  {prefix}{status_char} {story_key}: "
-                      f"{current_key} → {option_key}")
-                if ok:
-                    updated += 1
             else:
                 # Item missing from project — create it
                 title = title_from_epics(story_key) or f"{story_key} · (story)"
-                pvti_id = create_item(cfg["number"], cfg["owner"], title, dry_run)
+                body = body_from_story_file(story_key) or ""
+                pvti_id = create_item(cfg["number"], cfg["owner"], title, body, dry_run)
                 if pvti_id:
                     option_id = cfg["status_options"][option_key]
                     update_status(cfg["id"], pvti_id, cfg["status_field"], option_id, dry_run)
@@ -299,17 +381,24 @@ def sync(dry_run: bool = False) -> None:
                     if epic_option_id:
                         update_status(cfg["id"], pvti_id, cfg["epic_field"],
                                       epic_option_id, dry_run)
-                    print(f"  {prefix}+ {story_key}: created [{option_key}]  '{title}'")
+                    body_note = " +body" if body else ""
+                    print(f"  {prefix}+ {story_key}: created [{option_key}]{body_note}  '{title}'")
                     created += 1
                 else:
                     print(f"  {prefix}✗ {story_key}: failed to create item")
 
-        print(f"  → {updated} updated, {created} created, {skipped} already in sync\n")
+        parts = [f"{updated} updated", f"{created} created", f"{skipped} already in sync"]
+        if bodies_fixed:
+            parts.append(f"{bodies_fixed} bodies fixed")
+        print(f"  → {', '.join(parts)}\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would change without making API calls")
+    parser.add_argument("--fix-bodies", action="store_true",
+                        help="Re-write every item body from its story file (even if already set)")
     args = parser.parse_args()
-    sync(dry_run=args.dry_run)
+    sync(dry_run=args.dry_run, fix_bodies=args.fix_bodies)
