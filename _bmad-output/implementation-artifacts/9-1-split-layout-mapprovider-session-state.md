@@ -4,7 +4,7 @@ baseline_commit: 2ad8908
 
 # Story 9.1: Split layout + `MapProvider` + session itinerary state
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -72,12 +72,12 @@ So that I can immediately see the itinerary without any manual action.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add `@types/geojson` dev dependency (AC: #6, #8)
-  - [ ] 1.1 Run `pnpm add -D @types/geojson` in `talk-ui`
-  - [ ] 1.2 Verify `tsconfig.app.json` picks it up automatically (no `types` list to update)
+- [x] Task 1: Add `@types/geojson` dev dependency (AC: #6, #8)
+  - [x] 1.1 Run `pnpm add -D @types/geojson` in `talk-ui`
+  - [x] 1.2 Verify `tsconfig.app.json` picks it up automatically (no `types` list to update)
 
-- [ ] Task 2: Create `src/map/types.ts` — core interfaces (AC: #6, #8)
-  - [ ] 2.1 Export `MapFeature` interface:
+- [x] Task 2: Create `src/map/types.ts` — core interfaces (AC: #6, #8)
+  - [x] 2.1 Export `MapFeature` interface:
     ```typescript
     export interface MapFeature {
       id: string;                                    // equals toolCallId — ensures idempotency
@@ -87,14 +87,14 @@ So that I can immediately see the itinerary without any manual action.
       properties?: Record<string, unknown>;          // distance, duration, profile, portions, …
     }
     ```
-  - [ ] 2.2 Export `ToolResultMapper` interface:
+  - [x] 2.2 Export `ToolResultMapper` interface:
     ```typescript
     export interface ToolResultMapper {
       toolName: string;
       toMapFeatures: (toolResult: unknown) => MapFeature[];
     }
     ```
-  - [ ] 2.3 Export `MapContextValue` interface:
+  - [x] 2.3 Export `MapContextValue` interface:
     ```typescript
     export interface MapContextValue {
       itineraries: MapFeature[];
@@ -104,34 +104,34 @@ So that I can immediately see the itinerary without any manual action.
       selectFeature: (id: string | null) => void;
     }
     ```
-  - [ ] 2.4 Verify `src/map/types.ts` imports only from `geojson` — zero imports from `../context/`, `../components/`, or `../config/`
+  - [x] 2.4 Verify `src/map/types.ts` imports only from `geojson` — zero imports from `../context/`, `../components/`, or `../config/`
 
-- [ ] Task 3: Create `src/map/map-context.ts` — React context (AC: #6)
-  - [ ] 3.1 Create the context with `null` default:
+- [x] Task 3: Create `src/map/map-context.ts` — React context (AC: #6)
+  - [x] 3.1 Create the context with `null` default:
     ```typescript
     import { createContext } from "react";
     import type { MapContextValue } from "./types";
     export const MapContext = createContext<MapContextValue | null>(null);
     ```
-  - [ ] 3.2 Export `useMapContext` hook that throws if used outside `MapProvider`
+  - [x] 3.2 Export `useMapContext` hook that throws if used outside `MapProvider`
 
-- [ ] Task 4: Create `src/map/MapProvider.tsx` — context provider (AC: #2, #3, #4, #5, #6, #7, #8)
-  - [ ] 4.1 Import `useAgent` from `@copilotkit/react-core/v2`; read `agent.messages` — no `ChatUIContext` import
-  - [ ] 4.2 Accept `mappers: ToolResultMapper[]` and `children: ReactNode` as props
-  - [ ] 4.3 Implement `itineraries: MapFeature[]` via `useMemo` over `agent.messages`:
+- [x] Task 4: Create `src/map/MapProvider.tsx` — context provider (AC: #2, #3, #4, #5, #6, #7, #8)
+  - [x] 4.1 Import `useAgent` from `@copilotkit/react-core/v2`; read `agent.messages` — no `ChatUIContext` import
+  - [x] 4.2 Accept `mappers: ToolResultMapper[]` and `children: ReactNode` as props
+  - [x] 4.3 Implement `itineraries: MapFeature[]` via `useMemo` over `agent.messages`:
     - Build a `Map<string, string>` of `toolCallId → toolName` by iterating assistant messages with `toolCalls`
     - For each tool-result message (`role === "tool"`), look up `toolCallId` in the map, find the matching mapper, call `mapper.toMapFeatures(content)`, and prepend the toolCallId as the feature `id`
     - Return the flat list of all features derived from all tool results
     - Reuse `parseAguiMessage` from `../config/agui-schemas` to parse messages safely
-  - [ ] 4.4 Manage `isMapPanelOpen: boolean` via `useState(false)`
-  - [ ] 4.5 Auto-open effect: use `useRef` to track previous `itineraries.length`; when count increases, call `setIsMapPanelOpen(true)` (AC: #3)
-  - [ ] 4.6 Session-reset effect: when `agent.messages.length` drops to `0`, call `setIsMapPanelOpen(false)` (AC: #7) — itineraries auto-reset because they derive from messages via `useMemo`
-  - [ ] 4.7 Implement `toggleMapPanel = useCallback(() => setIsMapPanelOpen(v => !v), [])`
-  - [ ] 4.8 Manage `selectedFeatureId: string | null` via `useState(null)`; implement `selectFeature = useCallback((id) => setSelectedFeatureId(id), [])`
-  - [ ] 4.9 Build `value` with `useMemo`; provide it via `<MapContext.Provider value={value}>`
+  - [x] 4.4 Manage `isMapPanelOpen: boolean` via `useState(false)`
+  - [x] 4.5 Auto-open effect: use `useRef` to track previous `itineraries.length`; when count increases, call `setIsMapPanelOpen(true)` (AC: #3)
+  - [x] 4.6 Session-reset effect: when `agent.messages.length` drops to `0`, call `setIsMapPanelOpen(false)` (AC: #7) — itineraries auto-reset because they derive from messages via `useMemo`
+  - [x] 4.7 Implement `toggleMapPanel = useCallback(() => setIsMapPanelOpen(v => !v), [])`
+  - [x] 4.8 Manage `selectedFeatureId: string | null` via `useState(null)`; implement `selectFeature = useCallback((id) => setSelectedFeatureId(id), [])`
+  - [x] 4.9 Build `value` with `useMemo`; provide it via `<MapContext.Provider value={value}>`
 
-- [ ] Task 5: Create `src/map/adapters/route-tool-mapper.ts` — IGN route adapter (AC: #3, #8)
-  - [ ] 5.1 Define a Zod schema `routeToolOutputSchema` covering only the fields needed for `MapFeature`:
+- [x] Task 5: Create `src/map/adapters/route-tool-mapper.ts` — IGN route adapter (AC: #3, #8)
+  - [x] 5.1 Define a Zod schema `routeToolOutputSchema` covering only the fields needed for `MapFeature`:
     - `start: z.string()`, `end: z.string()`
     - `profile: z.string()`, `optimization: z.string()`
     - `distance: z.number()`, `duration: z.number()`
@@ -139,7 +139,7 @@ So that I can immediately see the itinerary without any manual action.
     - `geometry: z.object({ type: z.string(), coordinates: z.array(z.array(z.number())) })`
     - `portions: z.array(z.unknown())`
     - `startLabel: z.string().optional()`, `endLabel: z.string().optional()`
-  - [ ] 5.2 Implement `toMapFeatures(toolResult: unknown): MapFeature[]`:
+  - [x] 5.2 Implement `toMapFeatures(toolResult: unknown): MapFeature[]`:
     - If `toolResult` is a string, attempt `JSON.parse`; catch and return `[]`
     - Validate with `routeToolOutputSchema.safeParse`; if fails, return `[]`
     - Build `label`: `${data.startLabel ?? data.start} → ${data.endLabel ?? data.end} (${data.profile}, ${data.optimization})`
@@ -159,29 +159,29 @@ So that I can immediately see the itinerary without any manual action.
         },
       }
       ```
-  - [ ] 5.3 Export `routeToolMapper: ToolResultMapper = { toolName: "route", toMapFeatures }`
+  - [x] 5.3 Export `routeToolMapper: ToolResultMapper = { toolName: "route", toMapFeatures }`
 
-- [ ] Task 6: Create `src/components/SplitLayout.tsx` — layout wrapper (AC: #1, #2, #4)
-  - [ ] 6.1 Props: `{ mapPanelOpen: boolean; mapPanel: ReactNode; children: ReactNode }`
-  - [ ] 6.2 Render a full-screen `flex` row container:
+- [x] Task 6: Create `src/components/SplitLayout.tsx` — layout wrapper (AC: #1, #2, #4)
+  - [x] 6.1 Props: `{ mapPanelOpen: boolean; mapPanel: ReactNode; children: ReactNode }`
+  - [x] 6.2 Render a full-screen `flex` row container:
     - Left: `children` fills available width (`flex-1 min-w-0`)
     - Right: when `mapPanelOpen` is `true`, render `<div className="w-1/2 ...">` containing `mapPanel`; when `false`, render nothing (conditional, not `hidden`)
-  - [ ] 6.3 No logic, no context reads — purely a presentation container
+  - [x] 6.3 No logic, no context reads — purely a presentation container
 
-- [ ] Task 7: Update `src/App.tsx` — wire providers and layout (AC: #1, #2, #3)
-  - [ ] 7.1 Import `MapProvider` from `./map/MapProvider`
-  - [ ] 7.2 Import `routeToolMapper` from `./map/adapters/route-tool-mapper`
-  - [ ] 7.3 Import `SplitLayout` from `./components/SplitLayout`
-  - [ ] 7.4 Import `useMapContext` from `./map/map-context`
-  - [ ] 7.5 Create an inner component `AppLayout` (inside App) that:
+- [x] Task 7: Update `src/App.tsx` — wire providers and layout (AC: #1, #2, #3)
+  - [x] 7.1 Import `MapProvider` from `./map/MapProvider`
+  - [x] 7.2 Import `routeToolMapper` from `./map/adapters/route-tool-mapper`
+  - [x] 7.3 Import `SplitLayout` from `./components/SplitLayout`
+  - [x] 7.4 Import `useMapContext` from `./map/map-context`
+  - [x] 7.5 Create an inner component `AppLayout` (inside App) that:
     - Reads `isMapPanelOpen` and `toggleMapPanel` from `useMapContext()`
     - Renders `<SplitLayout mapPanelOpen={isMapPanelOpen} mapPanel={<div>Map placeholder</div>}>`
     - Wraps the whole thing in `<ChatUIProvider>`
-  - [ ] 7.6 `App` renders `<MapProvider mappers={[routeToolMapper]}><AppLayout /></MapProvider>`
-  - [ ] 7.7 Add a temporary visible toggle button (e.g., a `<button>` in the top-right of `SplitLayout`) connected to `toggleMapPanel` — will be replaced in story 9.2 with proper UI; must be accessible with an aria-label
+  - [x] 7.6 `App` renders `<MapProvider mappers={[routeToolMapper]}><AppLayout /></MapProvider>`
+  - [x] 7.7 Add a temporary visible toggle button (e.g., a `<button>` in the top-right of `SplitLayout`) connected to `toggleMapPanel` — will be replaced in story 9.2 with proper UI; must be accessible with an aria-label
 
-- [ ] Task 8: Tests (AC: #2, #3, #4, #5, #7, #8, #9)
-  - [ ] 8.1 Create `src/__tests__/map-provider.test.tsx`:
+- [x] Task 8: Tests (AC: #2, #3, #4, #5, #7, #8, #9)
+  - [x] 8.1 Create `src/__tests__/map-provider.test.tsx`:
     - Mock `useAgent` the same way `chat-ui-context.test.tsx` does — a mutable `mockAgent` object with `messages: []`
     - **Test: initial state** — render `MapProvider` with a `TestConsumer` that reads `isMapPanelOpen` and `itineraries.length`; assert both are falsy/zero
     - **Test: route result auto-opens panel** — seed `mockAgent.messages` with a `ToolCallContainer` message (role `"assistant"`, `toolCalls: [{ id: "tc-1", type: "function", function: { name: "route", arguments: "" } }]`) and a tool-result message (role `"tool"`, `toolCallId: "tc-1"`, `content: validRouteOutput`); re-render; assert `isMapPanelOpen === true` and `itineraries.length === 1`
@@ -190,7 +190,7 @@ So that I can immediately see the itinerary without any manual action.
     - **Test: session reset** — render with messages set, then update `mockAgent.messages = []` and re-render; assert `itineraries.length === 0` and `isMapPanelOpen === false`
     - **Test: toggleMapPanel** — open panel, call `toggleMapPanel`; assert `isMapPanelOpen` becomes `false`; call again; assert `true`
     - **Test: close preserves itineraries** — open panel with one itinerary, call `toggleMapPanel`; assert `itineraries.length === 1`
-  - [ ] 8.2 Create `src/__tests__/route-tool-mapper.test.ts`:
+  - [x] 8.2 Create `src/__tests__/route-tool-mapper.test.ts`:
     - **Test: valid output** — call `routeToolMapper.toMapFeatures(routeOutput)` with a full valid output object; assert returns one feature with correct `label`, `bbox`, `geometry`, and properties
     - **Test: labels from startLabel/endLabel** — with `startLabel: "Paris"` and `endLabel: "Lyon"`, assert `label` starts with `"Paris → Lyon"`
     - **Test: fallback to coordinates** — omit `startLabel`/`endLabel`; assert `label` starts with `data.start`
@@ -198,15 +198,15 @@ So that I can immediately see the itinerary without any manual action.
     - **Test: invalid content** — pass `null`; assert returns `[]`
     - **Test: malformed JSON string** — pass `"{bad json"`; assert returns `[]`
     - **Test: toolName** — assert `routeToolMapper.toolName === "route"`
-  - [ ] 8.3 Update `src/__tests__/app.test.tsx`:
+  - [x] 8.3 Update `src/__tests__/app.test.tsx`:
     - The `App` now uses `MapProvider` which calls `useAgent`; the existing mock for `@copilotkit/react-core/v2` already covers this
     - Verify the existing "renders the chat input" test still passes
     - Add a smoke test: `render(<App />)` does not throw
 
-- [ ] Task 9: Run CI gates (AC: #9)
-  - [ ] 9.1 Run `pnpm lint` — 0 errors
-  - [ ] 9.2 Run `pnpm test` — 0 failures
-  - [ ] 9.3 Run `pnpm build` — 0 type errors
+- [x] Task 9: Run CI gates (AC: #9)
+  - [x] 9.1 Run `pnpm lint` — 0 errors
+  - [x] 9.2 Run `pnpm test` — 0 failures (679/679)
+  - [x] 9.3 Run `pnpm build` — 0 type errors (built in 6.54s)
 
 ## Dev Notes
 

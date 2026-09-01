@@ -108,7 +108,7 @@ development_status:
   epic-8-retrospective: optional
 
   epic-9: in-progress
-  9-1-split-layout-mapprovider-session-state: ready-for-dev
+  9-1-split-layout-mapprovider-session-state: done
   9-2-map-rendering-maplibre-ign-tiles-routes-markers: backlog
   9-3-legend-panel-resume-etapes-tabs-selection-interactions: backlog
   epic-9-retrospective: optional
