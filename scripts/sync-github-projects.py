@@ -31,6 +31,7 @@ PROJECTS = {
         "status_field": "PVTSSF_lADOD6CgEc4Bh__8zhg5lIM",
         "epic_field":   "PVTSSF_lADOD6CgEc4Bh__8zhg5lmQ",
         "status_options": {
+            "backlog":       "540c4006",
             "todo":          "73c468bb",
             "in-progress":   "aa63eb8e",
             "review":        "59b9ac55",
@@ -51,6 +52,7 @@ PROJECTS = {
         "status_field": "PVTSSF_lADOD6CgEc4Bh__9zhg5lJE",
         "epic_field":   "PVTSSF_lADOD6CgEc4Bh__9zhg5lng",
         "status_options": {
+            "backlog":       "aa8617e6",
             "todo":          "a9c995a1",
             "in-progress":   "ae4e7b3d",
             "review":        "81055b5d",
@@ -72,7 +74,7 @@ STATUS_MAP = {
     "done":          "done",
     "in-progress":   "in-progress",
     "review":        "review",
-    "backlog":       "todo",
+    "backlog":       "backlog",
     "ready-for-dev": "todo",
 }
 

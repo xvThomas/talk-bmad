@@ -86,8 +86,13 @@ Skip this section if `{spec_file}` is not set.
 
 #### Determine new status based on review outcome
 
-- If all `decision-needed` and `patch` findings were resolved (fixed or dismissed) AND no unresolved HIGH/MEDIUM issues remain: set `{new_status}` = `done`. Update the story file Status section to `done`.
-- If `patch` findings were left as action items, or unresolved issues remain: set `{new_status}` = `in-progress`. Update the story file Status section to `in-progress`.
+- Read the current story status from the story file before applying any transition.
+- If `{sprint_status}` exists and `{story_key}` is found, also read `development_status[{story_key}]` as the source-of-truth status for sprint tracking.
+- Transition gate (mandatory): `done` is allowed only when the current status is `review`.
+- If all `decision-needed` and `patch` findings were resolved (fixed or dismissed) AND no unresolved HIGH/MEDIUM issues remain AND current status is `review`: set `{new_status}` = `done`. Update the story file Status section to `done`.
+- If `patch` findings were left as action items, unresolved issues remain, OR current status is not `review`: set `{new_status}` = `in-progress`.
+- If current status is not `review`, explicitly warn the user that the story must go through `dev-story` completion (which sets `review`) before a review can finalize it as `done`.
+- Update the story file Status section to `{new_status}`.
 
 Save the story file.
 
