@@ -9,16 +9,20 @@ both GitHub projects reflect the current story statuses.
   Frontend : https://github.com/orgs/pixime-net/projects/4
 
 Usage:
-  python3 scripts/sync-github-projects.py [--dry-run] [--fix-bodies]
+    python3 scripts/sync-github-projects.py [--dry-run]
 
-  --fix-bodies  Re-write the body of every existing item from its story file
-                (use after bulk AC changes; normal sync only fills empty bodies)
+Story descriptions are refreshed from the implementation artifact when present,
+otherwise from epics.md.
 
 Requirements:
   gh CLI authenticated with 'project' scope (gh auth refresh -s project).
 """
 
-import sys, re, subprocess, json, argparse
+import sys
+import re
+import subprocess
+import json
+import argparse
 from pathlib import Path
 
 # ── Project node IDs (stable — update only if projects are recreated) ──
@@ -42,6 +46,7 @@ PROJECTS = {
             "2": "f8252ca9",
             "3": "b4cd44b4",
             "8": "616b70e8",
+            "10": "35df6b53",
         },
         "epic_range": range(1, 4),
     },
@@ -64,9 +69,18 @@ PROJECTS = {
             "6": "b0b9eafe",
             "7": "77243781",
             "9": "f3a13ecd",
+            "10": "ae0dc449",
         },
         "epic_range": range(4, 8),
     },
+}
+
+# Stories in a cross-project epic are assigned individually. All other stories
+# use their epic number to select a single project.
+STORY_PROJECT_OVERRIDES = {
+    "10.1": "backend",
+    "10.2": "backend",
+    "10.3": "frontend",
 }
 
 # Maps sprint-status.yaml status values → project option key
@@ -147,6 +161,9 @@ def yaml_key_to_story_key(yaml_key: str) -> str | None:
 
 def story_key_to_project(story_key: str) -> str | None:
     """Return 'backend' or 'frontend' for the given story key."""
+    if project_name := STORY_PROJECT_OVERRIDES.get(story_key):
+        return project_name
+
     first = int(story_key.split(".")[0])
     for name, cfg in PROJECTS.items():
         if first in cfg["epic_range"] or str(first) in cfg["epic_options"]:
@@ -183,6 +200,22 @@ def title_from_epics(story_key: str) -> str | None:
     return None
 
 
+def body_from_epics(story_key: str) -> str | None:
+    """Extract a story section from epics.md for its GitHub description."""
+    if not EPICS_PATH.exists():
+        return None
+
+    text = EPICS_PATH.read_text(encoding="utf-8")
+    pattern = re.compile(
+        rf"^(### Story {re.escape(story_key)}:.*?)(?=^### Story |^## Epic |\Z)",
+        re.IGNORECASE | re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(text)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
 def body_from_story_file(story_key: str) -> str | None:
     """Extract the Story and Acceptance Criteria sections from the story file."""
     key_prefix = story_key.replace(".", "-")
@@ -202,11 +235,17 @@ def body_from_story_file(story_key: str) -> str | None:
     if m:
         parts.append(m.group(1).strip())
     # Match '## Acceptance Criteria' or '## Acceptance Criteria (BDD)' etc.
-    m = re.search(r"(## Acceptance Criteria[^\n]*\n.*?)(?=\n## |\Z)", text, re.DOTALL)
+    m = re.search(
+        r"(## Acceptance Criteria[^\n]*\n.*?)(?=\n## |\Z)", text, re.DOTALL)
     if m:
         parts.append(m.group(1).strip())
 
     return "\n\n".join(parts) if parts else None
+
+
+def story_body(story_key: str) -> str:
+    """Return the best available GitHub description for a story."""
+    return body_from_story_file(story_key) or body_from_epics(story_key) or ""
 
 
 # ── GitHub queries ───────────────────────────────────────────────────────
@@ -317,7 +356,7 @@ def create_item(proj_number: int, owner: str, title: str, body: str,
 
 # ── Main sync ────────────────────────────────────────────────────────────
 
-def sync(dry_run: bool = False, fix_bodies: bool = False) -> None:
+def sync(dry_run: bool = False) -> None:
     prefix = "[DRY-RUN] " if dry_run else ""
     print(f"{prefix}Reading sprint-status.yaml…")
     sprint = parse_sprint_status()
@@ -339,7 +378,8 @@ def sync(dry_run: bool = False, fix_bodies: bool = False) -> None:
 
             option_key = STATUS_MAP.get(raw_status)
             if option_key is None:
-                print(f"  WARN {story_key}: unknown status '{raw_status}' — skipped")
+                print(
+                    f"  WARN {story_key}: unknown status '{raw_status}' — skipped")
                 continue
 
             if story_key in existing:
@@ -359,37 +399,42 @@ def sync(dry_run: bool = False, fix_bodies: bool = False) -> None:
                     if ok:
                         updated += 1
 
-                # Fill body if empty, or overwrite if --fix-bodies requested
-                if item.get("di_id") and (fix_bodies or not item["body"]):
-                    body = body_from_story_file(story_key)
-                    if body:
-                        ok = update_body(item["di_id"], body, dry_run)
-                        if ok:
-                            bodies_fixed += 1
-                            print(f"  {prefix}📝 {story_key}: body {'updated' if item['body'] else 'filled'}")
+                body = story_body(story_key)
+                needs_body_update = item.get(
+                    "di_id") and body and body != item["body"]
+                if needs_body_update:
+                    ok = update_body(item["di_id"], body, dry_run)
+                    if ok:
+                        bodies_fixed += 1
+                        action = "updated" if item["body"] else "filled"
+                        print(f"  {prefix}📝 {story_key}: body {action}")
 
-                if not needs_status_update and not (item.get("di_id") and (fix_bodies or not item["body"]) and body_from_story_file(story_key)):
+                if not needs_status_update and not needs_body_update:
                     skipped += 1
             else:
                 # Item missing from project — create it
                 title = title_from_epics(story_key) or f"{story_key} · (story)"
-                body = body_from_story_file(story_key) or ""
-                pvti_id = create_item(cfg["number"], cfg["owner"], title, body, dry_run)
+                body = story_body(story_key)
+                pvti_id = create_item(
+                    cfg["number"], cfg["owner"], title, body, dry_run)
                 if pvti_id:
                     option_id = cfg["status_options"][option_key]
-                    update_status(cfg["id"], pvti_id, cfg["status_field"], option_id, dry_run)
+                    update_status(cfg["id"], pvti_id,
+                                  cfg["status_field"], option_id, dry_run)
                     epic_num = story_key.split(".")[0]
                     epic_option_id = cfg["epic_options"].get(epic_num)
                     if epic_option_id:
                         update_status(cfg["id"], pvti_id, cfg["epic_field"],
                                       epic_option_id, dry_run)
                     body_note = " +body" if body else ""
-                    print(f"  {prefix}+ {story_key}: created [{option_key}]{body_note}  '{title}'")
+                    print(
+                        f"  {prefix}+ {story_key}: created [{option_key}]{body_note}  '{title}'")
                     created += 1
                 else:
                     print(f"  {prefix}✗ {story_key}: failed to create item")
 
-        parts = [f"{updated} updated", f"{created} created", f"{skipped} already in sync"]
+        parts = [f"{updated} updated", f"{created} created",
+                 f"{skipped} already in sync"]
         if bodies_fixed:
             parts.append(f"{bodies_fixed} bodies fixed")
         print(f"  → {', '.join(parts)}\n")
@@ -400,7 +445,5 @@ if __name__ == "__main__":
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would change without making API calls")
-    parser.add_argument("--fix-bodies", action="store_true",
-                        help="Re-write every item body from its story file (even if already set)")
     args = parser.parse_args()
-    sync(dry_run=args.dry_run, fix_bodies=args.fix_bodies)
+    sync(dry_run=args.dry_run)
