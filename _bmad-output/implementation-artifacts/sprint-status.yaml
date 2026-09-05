@@ -113,8 +113,8 @@ development_status:
   9-3-legend-panel-resume-etapes-tabs-selection-interactions: backlog
   epic-9-retrospective: optional
 
-  epic-10: backlog
-  10-1-model-token-limits-and-provider-output-ceilings: backlog
+  epic-10: in-progress
+  10-1-model-token-limits-and-provider-output-ceilings: ready-for-dev
   10-2-per-response-token-usage-in-the-ag-ui-stream: backlog
   10-3-last-completed-call-token-indicators: backlog
   epic-10-retrospective: optional
