@@ -42,7 +42,7 @@
 #   composition"). Key below follows the file on disk (ground truth), not the epics.md title.
 
 generated: 2026-07-30
-last_updated: 2026-09-01
+last_updated: 2026-09-05
 project: talk-bmad
 project_key: NOKEY
 tracking_system: file-system
@@ -112,3 +112,9 @@ development_status:
   9-2-map-rendering-maplibre-ign-tiles-routes-markers: review
   9-3-legend-panel-resume-etapes-tabs-selection-interactions: backlog
   epic-9-retrospective: optional
+
+  epic-10: backlog
+  10-1-model-token-limits-and-provider-output-ceilings: backlog
+  10-2-per-response-token-usage-in-the-ag-ui-stream: backlog
+  10-3-last-completed-call-token-indicators: backlog
+  epic-10-retrospective: optional

@@ -5,6 +5,8 @@ inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-talk-frontend-2026-06-28/prd.md
   - _bmad-output/planning-artifacts/prds/prd-map-backend-2026-08-31/prd.md
   - _bmad-output/planning-artifacts/prds/prd-map-frontend-2026-08-31/prd.md
+  - _bmad-output/planning-artifacts/prds/prd-token-observability-backend-2026-09-05/prd.md
+  - _bmad-output/planning-artifacts/prds/prd-token-observability-frontend-2026-09-05/prd.md
   - _bmad-output/planning-artifacts/adr/adr-001-map-visualization-architecture.md
   - _bmad-output/project-context.md
 ---
@@ -19,6 +21,7 @@ This document provides the complete epic and story breakdown for the talk projec
 - **Epics 4–7:** Frontend (`talk-ui`) — CopilotKit React app, chat UX, production transport
 - **Epic 8:** `mcp-ign-nav` — route tool geometry support (backend)
 - **Epic 9:** `talk-ui` — MapLibre map visualization panel (frontend)
+- **Epic 10:** `talk` and `talk-ui` — token-limit observability
 
 ## Requirements Inventory
 
@@ -127,40 +130,40 @@ This document provides the complete epic and story breakdown for the talk projec
 
 ### Epic 8 FR Coverage Map
 
-| FR          | Story  | Description                                                       |
-| ----------- | ------ | ----------------------------------------------------------------- |
-| IGN-FR-1    | 8.1    | `route` always returns geometry                                   |
-| IGN-FR-2    | 8.1    | Remove `GetGeoJSONGeometry` / `GET_GEOJSON_GEOMETRY`              |
-| IGN-FR-3    | 8.1    | `DistanceTimeTool` unchanged                                      |
-| IGN-FR-4    | 8.1    | Update route tool tests                                           |
-| IGN-FR-5    | 8.2    | Add `StartLabel`/`EndLabel` to `RouteToolInput`                   |
-| IGN-FR-6    | 8.2    | Echo labels in `RouteToolOutput`                                  |
-| IGN-FR-7    | 8.2    | `DistanceTimeToolInput/Output` not extended                       |
-| MAP-FR-1    | 9.1    | Split layout, `ChatView` unmodified                               |
-| MAP-FR-2    | 9.1    | Map panel hidden at session start                                 |
-| MAP-FR-3    | 9.1    | Auto-open on new itinerary                                        |
-| MAP-FR-4    | 9.1    | Manual toggle                                                     |
-| MAP-FR-5    | 9.1    | Close does not discard state                                      |
-| MAP-FR-6    | 9.1    | `MapProvider` independent context                                 |
-| MAP-FR-7    | 9.1    | `ToolResultMapper` dispatch                                       |
-| MAP-FR-8    | 9.1    | `MapFeature`/`ToolResultMapper` types isolated                    |
-| MAP-FR-9    | 9.1    | Session reset clears map state                                    |
-| MAP-FR-10   | 9.2    | MapLibre + IGN Geopf base layer                                   |
-| MAP-FR-11   | 9.2    | LineString layer per itinerary, lazy-load                         |
-| MAP-FR-12   | 9.2    | Opacity differentiation selected vs. unselected                   |
-| MAP-FR-13   | 9.2    | Start marker                                                      |
-| MAP-FR-14   | 9.2    | End marker                                                        |
-| MAP-FR-15   | 9.2    | Intermediate waypoint markers                                     |
-| MAP-FR-16   | 9.2    | Viewport bbox auto-fit                                            |
-| MAP-FR-17   | 9.3    | Legend panel                                                      |
-| MAP-FR-18   | 9.3    | Legend entry format + fallback                                    |
-| MAP-FR-19   | 9.3    | Résumé / Étapes tabs                                              |
-| MAP-FR-20   | 9.3    | Étapes step list                                                  |
-| MAP-FR-21   | 9.3    | Click legend entry interaction                                    |
-| MAP-FR-22   | 9.3    | Click step → re-center                                            |
-| MAP-FR-23   | 9.3    | Active legend entry styling                                       |
-| MAP-FR-24   | 9.3    | `routeToolMapper` adapter                                         |
-| MAP-FR-25   | 9.3    | Adapter registered at app root                                    |
+| FR        | Story | Description                                          |
+| --------- | ----- | ---------------------------------------------------- |
+| IGN-FR-1  | 8.1   | `route` always returns geometry                      |
+| IGN-FR-2  | 8.1   | Remove `GetGeoJSONGeometry` / `GET_GEOJSON_GEOMETRY` |
+| IGN-FR-3  | 8.1   | `DistanceTimeTool` unchanged                         |
+| IGN-FR-4  | 8.1   | Update route tool tests                              |
+| IGN-FR-5  | 8.2   | Add `StartLabel`/`EndLabel` to `RouteToolInput`      |
+| IGN-FR-6  | 8.2   | Echo labels in `RouteToolOutput`                     |
+| IGN-FR-7  | 8.2   | `DistanceTimeToolInput/Output` not extended          |
+| MAP-FR-1  | 9.1   | Split layout, `ChatView` unmodified                  |
+| MAP-FR-2  | 9.1   | Map panel hidden at session start                    |
+| MAP-FR-3  | 9.1   | Auto-open on new itinerary                           |
+| MAP-FR-4  | 9.1   | Manual toggle                                        |
+| MAP-FR-5  | 9.1   | Close does not discard state                         |
+| MAP-FR-6  | 9.1   | `MapProvider` independent context                    |
+| MAP-FR-7  | 9.1   | `ToolResultMapper` dispatch                          |
+| MAP-FR-8  | 9.1   | `MapFeature`/`ToolResultMapper` types isolated       |
+| MAP-FR-9  | 9.1   | Session reset clears map state                       |
+| MAP-FR-10 | 9.2   | MapLibre + IGN Geopf base layer                      |
+| MAP-FR-11 | 9.2   | LineString layer per itinerary, lazy-load            |
+| MAP-FR-12 | 9.2   | Opacity differentiation selected vs. unselected      |
+| MAP-FR-13 | 9.2   | Start marker                                         |
+| MAP-FR-14 | 9.2   | End marker                                           |
+| MAP-FR-15 | 9.2   | Intermediate waypoint markers                        |
+| MAP-FR-16 | 9.2   | Viewport bbox auto-fit                               |
+| MAP-FR-17 | 9.3   | Legend panel                                         |
+| MAP-FR-18 | 9.3   | Legend entry format + fallback                       |
+| MAP-FR-19 | 9.3   | Résumé / Étapes tabs                                 |
+| MAP-FR-20 | 9.3   | Étapes step list                                     |
+| MAP-FR-21 | 9.3   | Click legend entry interaction                       |
+| MAP-FR-22 | 9.3   | Click step → re-center                               |
+| MAP-FR-23 | 9.3   | Active legend entry styling                          |
+| MAP-FR-24 | 9.3   | `routeToolMapper` adapter                            |
+| MAP-FR-25 | 9.3   | Adapter registered at app root                       |
 
 ## Epic List
 
@@ -567,6 +570,7 @@ The user sees tool calls in progress, can continue after an interrupt, cancel a 
 
 The app uses its own SSE client instead of `agents__unsafe_dev_only`, removing the CopilotKit Enterprise license dependency.
 **FRs covered:** Production architecture (no new user-facing FRs)
+
 ### Epic 8: `mcp-ign-nav` — Route Tool Geometry Support
 
 The `route` tool unconditionally returns GeoJSON geometry and optional place-name labels, enabling frontend map rendering without environment configuration.
@@ -581,6 +585,14 @@ Users see itineraries plotted on an interactive MapLibre GL JS map panel alongsi
 **Source PRD:** `prd-map-frontend-2026-08-31`
 **Architecture:** `adr-001-map-visualization-architecture.md`
 **FRs covered:** MAP-FR-1 to MAP-FR-25
+
+### Epic 10: Token-Limit Observability Summary
+
+Users can see the confirmed input-context and output consumption of every completed LLM call relative to documented model limits. The backend applies its configured output ceiling consistently across providers and sends usage through the existing AG-UI stream; the frontend renders the latest completed-call context indicator.
+**Codebases:** `talk`, `talk-ui`
+**Source PRDs:** `prd-token-observability-backend-2026-09-05`, `prd-token-observability-frontend-2026-09-05`
+**FRs covered:** Token backend FR-1 to FR-18; token frontend FR-1 to FR-14
+
 ---
 
 ## Epic 4: Basic Functional Conversation (talk-ui)
@@ -1179,6 +1191,7 @@ So that I can immediately see the itinerary without any manual action.
 **FRs:** MAP-FR-1, MAP-FR-2, MAP-FR-3, MAP-FR-4, MAP-FR-5, MAP-FR-6, MAP-FR-7, MAP-FR-8, MAP-FR-9
 
 **Technical notes:**
+
 - `MapProvider` and `ChatUIProvider` are siblings in the React tree, composed at `App.tsx`
 - The map panel toggle control can be a simple button on the panel edge or a toolbar icon — visual design is implementation choice
 - `MapFeature.id` should be derived from the AG-UI `toolCallId` to ensure uniqueness and idempotency (reprocessing the same message does not duplicate features)
@@ -1227,6 +1240,7 @@ So that I can spatially understand the route.
 **FRs:** MAP-FR-10, MAP-FR-11, MAP-FR-12, MAP-FR-13, MAP-FR-14, MAP-FR-15, MAP-FR-16
 
 **Technical notes:**
+
 - Use `react-map-gl` with `mapLib` prop pointing to MapLibre GL JS (not Mapbox)
 - IGN Geopf WMTS tile URL pattern: `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}`
 - Auto-color palette: derive from a fixed hue-spaced list (e.g., `["#2196F3", "#FF5722", "#4CAF50", "#9C27B0", "#FF9800"]`), indexed by feature order
@@ -1282,12 +1296,13 @@ So that I can identify routes, compare them, and navigate the map with precision
 **Given** the `routeToolMapper` adapter (`src/map/adapters/route-tool-mapper.ts`)
 **When** it processes a `RouteToolOutput`
 **Then** it produces one `MapFeature` with:
-  - `id`: the AG-UI `toolCallId`
-  - `label`: `"${startLabel} → ${endLabel} (${profile}, ${optimization})"` (with coordinate fallback)
-  - `geometry`: `RouteToolOutput.geometry` (GeoJSON `LineString`)
-  - `bbox`: `RouteToolOutput.bbox`
-  - `properties`: `{ distance, duration, profile, optimization, portions }` (typed, not `unknown`)
-**And** the adapter has no import dependency on any React component or context
+
+- `id`: the AG-UI `toolCallId`
+- `label`: `"${startLabel} → ${endLabel} (${profile}, ${optimization})"` (with coordinate fallback)
+- `geometry`: `RouteToolOutput.geometry` (GeoJSON `LineString`)
+- `bbox`: `RouteToolOutput.bbox`
+- `properties`: `{ distance, duration, profile, optimization, portions }` (typed, not `unknown`)
+  **And** the adapter has no import dependency on any React component or context
 
 **Given** the `routeToolMapper` is registered in `MapProvider` at app root (`App.tsx`)
 **When** a `route` tool result arrives in `agent.messages`
@@ -1296,7 +1311,150 @@ So that I can identify routes, compare them, and navigate the map with precision
 **FRs:** MAP-FR-17, MAP-FR-18, MAP-FR-19, MAP-FR-20, MAP-FR-21, MAP-FR-22, MAP-FR-23, MAP-FR-24, MAP-FR-25
 
 **Technical notes:**
+
 - Format distance: `< 1000m` → `"Xm"`, `≥ 1000m` → `"X.X km"` (round to 1 decimal)
 - Format duration: convert seconds → `"Xh YYmin"` or `"Xmin"` if under 1 hour
 - The legend panel width should be fixed (e.g., 280px) and scrollable independently of the map
 - Tab state (Résumé / Étapes) is local component state — not in `MapProvider`
+
+---
+
+## Epic 10: Token-Limit Observability
+
+Users can understand the confirmed token consumption of the last completed LLM call without relying on an estimate. The implementation keeps provider capabilities separate from Talk's output policy, applies that policy through supported provider request fields, and carries the resulting usage through AG-UI to `talk-ui`.
+
+**Prerequisites:** Epics 1 and 5 complete (AG-UI transport and model selector)
+**Execution order:** 10.1 → 10.2 → 10.3
+
+---
+
+### Story 10.1: Model token limits and provider output ceilings
+
+**Codebase:** `talk`
+
+As a platform operator,
+I want to configure token capacities and a request output ceiling for each model,
+So that Talk can consistently apply its output policy and report documented provider limits.
+
+**Acceptance Criteria:**
+
+**Given** the backend model registry
+**When** token-limit metadata is added
+**Then** each model can optionally define `ContextWindowTokens`, `ProviderMaxOutputTokens`, and `RequestMaxOutputTokens`
+**And** each OpenAI-compatible model can optionally define `OutputLimitParameter` as `max_tokens` or `max_completion_tokens`
+**And** the Poolside `agent` model is removed from the registry
+**And** model aliases retained in the registry remain selectable
+
+**Given** a provider maximum output limit is configured
+**When** the request maximum is absent, zero, or higher than that provider maximum
+**Then** the effective request output limit equals the provider maximum
+
+**Given** both a provider maximum and a lower positive request maximum are configured
+**When** Talk creates a completion request
+**Then** the effective request output limit equals the request maximum
+
+**Given** no provider maximum is configured
+**When** a positive request maximum is configured
+**Then** that requested maximum is used
+**And** when neither value is configured, no output limit parameter is sent
+
+**Given** an Anthropic model with an effective output limit
+**When** Talk creates a Messages API request
+**Then** it sends the limit as `max_tokens`
+
+**Given** an OpenAI-compatible model with an effective output limit and configured parameter name
+**When** Talk creates a chat-completion request
+**Then** it sends the limit through the configured compatible parameter
+
+**And** tests cover every effective-limit rule and both provider request mappings.
+
+**FRs:** Token backend FR-1 to FR-10
+
+---
+
+### Story 10.2: Per-response token usage in the AG-UI stream
+
+**Codebase:** `talk`
+**Dependencies:** Story 10.1
+
+As a frontend developer,
+I want a provider-neutral AG-UI event for every completed LLM response,
+So that I can show the latest confirmed token consumption without polling another endpoint.
+
+**Acceptance Criteria:**
+
+**Given** a successful LLM API response
+**When** its token usage is available
+**Then** the existing AG-UI SSE stream emits a custom `token_usage` event after that response is processed
+**And** the event identifies the model alias and the counts as confirmed usage for that completed call
+**And** it includes available input and output token counts, cache tokens, and reasoning tokens
+**And** it includes available configured context-window and provider-output limits
+
+**Given** the response has confirmed input tokens and a positive context-window limit
+**When** the event is built
+**Then** it includes the input-to-context ratio
+
+**Given** the response has confirmed output tokens and a positive provider-output limit
+**When** the event is built
+**Then** it includes the output-to-provider-maximum ratio
+
+**Given** a count or its corresponding limit is unavailable
+**When** the event is built
+**Then** the affected ratio is omitted rather than estimated or represented as zero
+
+**Given** one user turn triggers multiple LLM responses through tool execution
+**When** each response completes
+**Then** each completed response produces its own token-usage event before a subsequent error can end the turn
+
+**And** existing text, reasoning, tool, error, interrupt, and session events retain their current behavior
+**And** tests cover event payloads, omitted ratios, and multiple responses in one turn.
+
+**FRs:** Token backend FR-11 to FR-18
+
+---
+
+### Story 10.3: Last completed-call token indicators
+
+**Codebase:** `talk-ui`
+**Dependencies:** Story 10.2
+
+As a chat user,
+I want to see how much context the last completed model call used,
+So that I can recognize a conversation approaching the selected model's capacity.
+
+**Acceptance Criteria:**
+
+**Given** the active AG-UI stream receives a `token_usage` event
+**When** the event is processed
+**Then** the UI stores it as the usage of the last completed LLM call in the active conversation
+**And** a later LLM response in the same user turn replaces the displayed values
+**And** starting a new conversation clears the displayed usage
+
+**Given** confirmed input tokens and a context-window limit are available
+**When** model controls render
+**Then** a compact horizontal progress indicator appears near the model selector
+**And** it clearly identifies the value as the context of the last completed call
+**And** it shows the formatted count and percentage
+**And** it exposes the same exact values through accessible semantics
+
+**Given** a context ratio is below 70%, from 70% to below 85%, from 85% to below 100%, or at least 100%
+**When** the indicator renders
+**Then** it displays respectively normal, warning, critical, or blocked status using text and color
+
+**Given** input tokens are available but the context-window limit is not
+**When** the indicator renders
+**Then** it shows the input count with an explicit unavailable-limit state and no percentage
+
+**Given** output tokens and the provider maximum output limit are available
+**When** the last call has completed
+**Then** the UI presents a compact secondary output value with count and percentage
+**And** it does not present the output ratio as a live generation progress meter
+
+**Given** usage detail metrics are available
+**When** the user opens the usage details
+**Then** the UI presents input, output, limits, cache, and reasoning values that are available
+**And** unknown values are omitted rather than shown as zero
+
+**And** tests cover event consumption, status thresholds, unavailable limits, multiple events per turn, and conversation reset.
+
+**FRs:** Token frontend FR-1 to FR-14
