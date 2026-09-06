@@ -36,3 +36,10 @@
 ## Deferred from: code review of 6-3-interrupt-max-iterations-continue (2026-07-30)
 
 - If `agent.pendingInterrupts` only ever contains interrupts whose `reason` isn't `talk:max_iterations`, `pendingInterrupt` stays `null` forever and no UI ever appears — the agent would be left blocked with no affordance to unblock it. Deferred because only the `talk:max_iterations` reason exists in the product today; revisit once a second interrupt reason is introduced.
+
+## Deferred from: code review of 10-1-model-token-limits-and-provider-output-ceilings (2026-09-05)
+
+- ProviderMaxOutputTokens/ContextWindowTokens restent à zéro dans le registry : la branche de clamp P-aware est morte en prod, mais les insérer serait créer des limites provider non vérifiées (contrainte story 10.1).
+- thinking-budget Anthropic peut égaler max_tokens si plafond ≤1024 (rejet API 400 strictement `budget_tokens < max_tokens`) ; latent car tous les plafonds registry ≥8192.
+- Le budget thinking se calcule depuis le ceiling de sortie qui est un budget TOTAL chez Anthropic : le raisonnement consomme la capacité de réponse. Drift de sémantique à documenter.
+- OLTPProviderPoolside devenu orphelin (seul consommateur : agent supprimé) ; ContextWindowTokens déclaré mais non lu — réservés pour 10.2/10.3.
