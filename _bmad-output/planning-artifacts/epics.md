@@ -306,6 +306,36 @@ So that my UI can display the model's chain-of-thought to the user.
 **When** each intermediate LLM call returns thinking content
 **Then** reasoning events are emitted for each iteration (before the tool call events of the next iteration)
 
+### Story 1.6: Provider-neutral reasoning capture for OpenAI-compatible models
+
+**Codebase:** `talk`
+**Dependencies:** Story 1.5 (AG-UI reasoning event contract), Story 10.1 (model metadata, mistral-small → Mistral Small 4)
+
+As a frontend developer,
+I want the OpenAI-compatible client to surface model reasoning content as domain thinking (o4-mini, gpt-5.4, mistral-small),
+So that the AG-UI `REASONING_*` events defined in Story 1.5 carry real content for every provider, not only Anthropic.
+
+**Acceptance Criteria:**
+
+**Given** an OpenAI-compatible completion response contains reasoning content
+**When** the backend converts the SDK response (`fromSDKResponse`)
+**Then** the reasoning content is captured in `domain.Message.Thinking`
+
+**Given** an OpenAI-compatible completion response has no reasoning content
+**When** the backend converts the response
+**Then** `domain.Message.Thinking` remains empty and no reasoning content is fabricated
+
+**Given** a request with `thinkingEffort` active on an OpenAI-compatible thinking model (o4-mini, gpt-5.4, mistral-small)
+**When** the response contains reasoning
+**Then** the AG-UI `REASONING_START` → `REASONING_MESSAGE_*` → `REASONING_END` sequence (Story 1.5) carries the captured content
+
+**Given** Mistral Small 4 emits default hybrid thinking without any `thinkingEffort` configured
+**When** the response is converted
+**Then** the emitted thinking content is surfaced to the domain message instead of being silently dropped
+
+**Given** the backend test suite runs
+**Then** conversion tests cover reasoning capture, empty reasoning, and reasoning-token usage mapping without API keys or network access
+
 ---
 
 ## Epic 2: MCP Tool Execution with AG-UI Events

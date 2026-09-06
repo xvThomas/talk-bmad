@@ -204,3 +204,7 @@ Amelia (GitHub Copilot)
 - D2 resolved: fallback 4096 conservé (champ SDK `api:"required"`), commentaire code ajouté dans `anthropic/client.go`, note AC#5 ajoutée ci-dessus.
 - D3 dismissed: `applyOutputLimit` sans default conservé (tout modèle OpenAI-compatible doit rester exhaustif dans le registry).
 - Patches appliqués : P1-P7 (registry, commentaire, asserts `.Valid()`, test coexistence `max_completion_tokens`+`reasoning_effort`, test requête Anthropic, test alias positif, cas P<0).
+
+### Review Finding (follow-up, 2026-09-06)
+
+- [x] **Resolved — `mistral-small-2506` retiré par Mistral (arrêt 2026-07-31) ; le registry pointait vers un modèle désactivé.** Swap dans `talk/internal/domain/model.go` : `APIModelID` → `mistral-small-4-0-26-03` (Mistral Small 4, hybrid reasoning). `ThinkingStyle` reste vide → aucun `reasoning_effort` envoyé (comportement identique à l'ancien). À surveiller hors scope : Small 4 peut émettre du contenu thinking que `fromSDKResponse` (client OpenAI) ignore (`msg.Thinking` non peuplé sur le chemin OpenAI) — à traiter avec 10.2/10.3.
