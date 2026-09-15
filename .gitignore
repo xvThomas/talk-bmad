@@ -3,3 +3,6 @@
 
 # Personal bmad overrides
 _bmad/custom/config.user.toml
+
+# Python cache files for scripts
+scripts/__pycache__/

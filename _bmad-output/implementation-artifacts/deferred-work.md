@@ -43,3 +43,11 @@
 - thinking-budget Anthropic peut égaler max_tokens si plafond ≤1024 (rejet API 400 strictement `budget_tokens < max_tokens`) ; latent car tous les plafonds registry ≥8192.
 - Le budget thinking se calcule depuis le ceiling de sortie qui est un budget TOTAL chez Anthropic : le raisonnement consomme la capacité de réponse. Drift de sémantique à documenter.
 - OLTPProviderPoolside devenu orphelin (seul consommateur : agent supprimé) ; ContextWindowTokens déclaré mais non lu — réservés pour 10.2/10.3.
+
+## Deferred from: code review of 10-2-per-response-token-usage-in-the-ag-ui-stream (2026-09-15)
+
+- Correct model aliases that currently resolve to different provider model IDs (`talk/internal/domain/model.go:92`).
+- Align the mapping-agent prompt's required tool arguments with its workflow calls (`docs/labs/FSM-discovery-mapping-agent.md:128`).
+- Define handling for projected SRIDs, multiple geometry columns, and empty query results in the mapping workflow (`docs/labs/FSM-discovery-mapping-agent.md:119`).
+- Reconcile clustering and repeated-quartile requirements with the declared MapLibre style output contract (`docs/labs/FSM-discovery-mapping-agent.md:151`).
+- Reject unknown Anthropic thinking-effort values instead of silently mapping them to low (`talk/internal/llm/anthropic/client.go:91`).

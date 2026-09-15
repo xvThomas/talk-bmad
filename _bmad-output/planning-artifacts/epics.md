@@ -1436,6 +1436,12 @@ So that I can show the latest confirmed token consumption without polling anothe
 **When** each response completes
 **Then** each completed response produces its own token-usage event before a subsequent error can end the turn
 
+**Given** a user turn has ended
+**When** the turn's authoritative total (`TurnEvent.TotalUsage`) is available
+**Then** the stream emits a custom `turn_usage` event carrying the sum of every LLM call of that turn
+**And** it is emitted exactly once per turn, for complete and interrupted (iteration-limit) turns alike
+**And** the per-call `token_usage` events remain unchanged
+
 **And** existing text, reasoning, tool, error, interrupt, and session events retain their current behavior
 **And** tests cover event payloads, omitted ratios, and multiple responses in one turn.
 
@@ -1485,6 +1491,12 @@ So that I can recognize a conversation approaching the selected model's capacity
 **Then** the UI presents input, output, limits, cache, and reasoning values that are available
 **And** unknown values are omitted rather than shown as zero
 
-**And** tests cover event consumption, status thresholds, unavailable limits, multiple events per turn, and conversation reset.
+**Given** the active AG-UI stream receives a `turn_usage` event
+**When** the event is processed
+**Then** the UI adds the turn's total to a session-scoped cumulative usage indicator
+**And** the cumulative is reset to zero whenever a conversation is loaded or started
+**And** it is fed exclusively by `turn_usage` totals — never by summing individual `token_usage` events
+
+**And** tests cover event consumption, status thresholds, unavailable limits, multiple events per turn, turn_usage cumulative reconciliation, and conversation reset.
 
 **FRs:** Token frontend FR-1 to FR-14
