@@ -618,10 +618,10 @@ Users see itineraries plotted on an interactive MapLibre GL JS map panel alongsi
 
 ### Epic 10: Token-Limit Observability Summary
 
-Users can see the confirmed input-context and output consumption of every completed LLM call relative to documented model limits. The backend applies its configured output ceiling consistently across providers and sends usage through the existing AG-UI stream; the frontend renders the latest completed-call context indicator.
+Users can see stable final-call context occupancy after each completed turn and provider-normalized token consumption for the current session. The backend applies output policy, emits per-call and turn usage, normalizes totals at provider boundaries, and optionally exposes reasoning breakdowns; the frontend separates session consumption from context capacity.
 **Codebases:** `talk`, `talk-ui`
 **Source PRDs:** `prd-token-observability-backend-2026-09-05`, `prd-token-observability-frontend-2026-09-05`
-**FRs covered:** Token backend FR-1 to FR-18; token frontend FR-1 to FR-14
+**FRs covered:** Token backend FR-1 to FR-28; token frontend FR-1 to FR-18
 
 ---
 
@@ -1351,10 +1351,10 @@ So that I can identify routes, compare them, and navigate the map with precision
 
 ## Epic 10: Token-Limit Observability
 
-Users can understand the confirmed token consumption of the last completed LLM call without relying on an estimate. The implementation keeps provider capabilities separate from Talk's output policy, applies that policy through supported provider request fields, and carries the resulting usage through AG-UI to `talk-ui`.
+Users can understand both the context occupancy of the final LLM call in the last completed turn and the provider-normalized token volume consumed during the current session. The implementation keeps provider capabilities, request policy, per-call context usage, turn reconciliation, normalized totals, and optional reasoning breakdowns semantically distinct.
 
 **Prerequisites:** Epics 1 and 5 complete (AG-UI transport and model selector)
-**Execution order:** 10.1 → 10.2 → 10.3
+**Execution order:** 10.1 → 10.2 → 10.3 → 10.4 → 10.5; 10.6 may follow 10.4 independently of 10.5
 
 ---
 
@@ -1375,26 +1375,11 @@ So that Talk can consistently apply its output policy and report documented prov
 **And** the Poolside `agent` model is removed from the registry
 **And** model aliases retained in the registry remain selectable
 
-**Given** a provider maximum output limit is configured
-**When** the request maximum is absent, zero, or higher than that provider maximum
-**Then** the effective request output limit equals the provider maximum
-
-**Given** both a provider maximum and a lower positive request maximum are configured
-**When** Talk creates a completion request
-**Then** the effective request output limit equals the request maximum
-
-**Given** no provider maximum is configured
-**When** a positive request maximum is configured
-**Then** that requested maximum is used
-**And** when neither value is configured, no output limit parameter is sent
-
-**Given** an Anthropic model with an effective output limit
-**When** Talk creates a Messages API request
-**Then** it sends the limit as `max_tokens`
-
-**Given** an OpenAI-compatible model with an effective output limit and configured parameter name
-**When** Talk creates a chat-completion request
-**Then** it sends the limit through the configured compatible parameter
+**Given** provider and request output limits
+**When** Talk resolves the effective request limit
+**Then** it uses the lower positive configured value, falls back to the available positive value, and sends no limit when neither exists
+**And** Anthropic uses `max_tokens`
+**And** OpenAI-compatible models use their configured supported parameter
 
 **And** tests cover every effective-limit rule and both provider request mappings.
 
@@ -1408,95 +1393,166 @@ So that Talk can consistently apply its output policy and report documented prov
 **Dependencies:** Story 10.1
 
 As a frontend developer,
-I want a provider-neutral AG-UI event for every completed LLM response,
-So that I can show the latest confirmed token consumption without polling another endpoint.
+I want provider-neutral AG-UI usage events for completed LLM responses and turns,
+So that the UI can present confirmed context and consumption without polling.
 
 **Acceptance Criteria:**
 
 **Given** a successful LLM API response
 **When** its token usage is available
-**Then** the existing AG-UI SSE stream emits a custom `token_usage` event after that response is processed
-**And** the event identifies the model alias and the counts as confirmed usage for that completed call
-**And** it includes available input and output token counts, cache tokens, and reasoning tokens
-**And** it includes available configured context-window and provider-output limits
+**Then** the AG-UI stream emits one `token_usage` event for that completed call
+**And** it carries available input, output, cache, optional reasoning, configured limits, and per-call ratios
+**And** missing values and ratios are omitted rather than estimated
 
-**Given** the response has confirmed input tokens and a positive context-window limit
-**When** the event is built
-**Then** it includes the input-to-context ratio
+**Given** a turn completes normally or through an iteration-limit interruption
+**When** `TurnEvent.TotalUsage` is available
+**Then** the stream emits exactly one counts-only `turn_usage` event containing the authoritative sum of every call
+**And** per-call events remain unchanged
 
-**Given** the response has confirmed output tokens and a positive provider-output limit
-**When** the event is built
-**Then** it includes the output-to-provider-maximum ratio
-
-**Given** a count or its corresponding limit is unavailable
-**When** the event is built
-**Then** the affected ratio is omitted rather than estimated or represented as zero
-
-**Given** one user turn triggers multiple LLM responses through tool execution
-**When** each response completes
-**Then** each completed response produces its own token-usage event before a subsequent error can end the turn
-
-**Given** a user turn has ended
-**When** the turn's authoritative total (`TurnEvent.TotalUsage`) is available
-**Then** the stream emits a custom `turn_usage` event carrying the sum of every LLM call of that turn
-**And** it is emitted exactly once per turn, for complete and interrupted (iteration-limit) turns alike
-**And** the per-call `token_usage` events remain unchanged
-
-**And** existing text, reasoning, tool, error, interrupt, and session events retain their current behavior
-**And** tests cover event payloads, omitted ratios, and multiple responses in one turn.
+**And** existing text, reasoning, tool, error, interrupt, and session behavior remains unchanged.
 
 **FRs:** Token backend FR-11 to FR-18
 
 ---
 
-### Story 10.3: Last completed-call token indicators
+### Story 10.3: Stable last-completed-turn context indicator
 
 **Codebase:** `talk-ui`
 **Dependencies:** Story 10.2
 
 As a chat user,
-I want to see how much context the last completed model call used,
-So that I can recognize a conversation approaching the selected model's capacity.
+I want context usage to update once when a turn ends,
+So that I can monitor model capacity without distracting within-turn fluctuations.
 
 **Acceptance Criteria:**
 
-**Given** the active AG-UI stream receives a `token_usage` event
-**When** the event is processed
-**Then** the UI stores it as the usage of the last completed LLM call in the active conversation
-**And** a later LLM response in the same user turn replaces the displayed values
-**And** starting a new conversation clears the displayed usage
+**Given** one or more valid `token_usage` events arrive during a turn
+**When** each event is processed
+**Then** the UI replaces only a pending latest-call snapshot
+**And** the previously displayed `ctx` value remains unchanged while the turn runs
 
-**Given** confirmed input tokens and a context-window limit are available
+**Given** the matching valid `turn_usage` arrives for a complete or interrupted turn
+**When** it is processed
+**Then** the pending latest-call snapshot is promoted to the displayed final-call usage for that completed turn
+**And** the display updates at most once per turn
+**And** a turn without a valid pending snapshot retains the previous display without fabricating zero
+
+**Given** final-call input tokens and a context-window limit are available
+**When** the model controls render
+**Then** a compact `ctx` indicator near the model selector shows exact input count, backend ratio, and normal/warning/critical/blocked status through accessible text and semantics
+**And** an unavailable limit produces an explicit count-only state
+
+**Given** per-call output usage is available
+**When** controls render
+**Then** no compact `out` or output-ratio chip is displayed
+**And** confirmed output values may remain available in the details panel
+
+**Given** usage details are opened
+**Then** every available final-call and cumulative category is presented
+**And** optional reasoning values remain omitted when unavailable
+
+**Given** a conversation starts, loads, or resets
+**Then** pending, displayed, and cumulative usage clears through the existing agent/thread lifecycle
+**And** stale subscriptions cannot update the new conversation
+
+**And** tests cover buffering, end-of-turn promotion, complete/interrupted turns, missing snapshots, thresholds, omissions, reset, and regression safety.
+
+**FRs:** Token frontend FR-1 to FR-13, FR-16 to FR-18
+
+---
+
+### Story 10.4: Provider-normalized total token usage
+
+**Codebase:** `talk`
+**Dependencies:** Story 10.2
+
+As a chat user,
+I want every completed call and turn to expose a provider-normalized total token count,
+So that session consumption can be accumulated consistently across providers.
+
+**Acceptance Criteria:**
+
+**Given** an OpenAI-compatible response
+**When** usage is converted
+**Then** `total_tokens = input_tokens + output_tokens`
+**And** cached input and reasoning subsets are not counted again
+
+**Given** an Anthropic response
+**When** usage is converted
+**Then** `total_tokens = input_tokens + cache_read_tokens + cache_write_tokens + output_tokens`
+**And** thinking already included in output is not counted again
+
+**Given** a complete or interrupted multi-call turn
+**When** usage is aggregated and emitted
+**Then** `Usage.Add` sums `TotalTokens`
+**And** `token_usage` and `turn_usage` expose optional `total_tokens`
+**And** `turn_usage.total_tokens` is authoritative for frontend session accumulation
+
+**And** provider, aggregation, and event tests prevent double counting.
+
+**FRs:** Token backend FR-19 to FR-24
+
+---
+
+### Story 10.5: Session total token consumption indicator
+
+**Codebase:** `talk-ui`
+**Dependencies:** Stories 10.3 and 10.4
+
+As a chat user,
+I want to see normalized tokens consumed since the current conversation started,
+So that I can monitor session consumption separately from context occupancy.
+
+**Acceptance Criteria:**
+
+**Given** valid `turn_usage.total_tokens` values
+**When** turns complete or are interrupted
+**Then** the UI accumulates them exactly once per turn
+**And** never reconstructs normalized total from provider-dependent category fields
+
+**Given** at least one total is confirmed
 **When** model controls render
-**Then** a compact horizontal progress indicator appears near the model selector
-**And** it clearly identifies the value as the context of the last completed call
-**And** it shows the formatted count and percentage
-**And** it exposes the same exact values through accessible semantics
+**Then** a compact session-total indicator appears immediately before `ctx`
+**And** exact accessible text identifies its current-session scope
+**And** no zero/unknown chip appears before confirmation
 
-**Given** a context ratio is below 70%, from 70% to below 85%, from 85% to below 100%, or at least 100%
-**When** the indicator renders
-**Then** it displays respectively normal, warning, critical, or blocked status using text and color
+**Given** usage details are opened
+**Then** normalized session total and every confirmed cumulative input, output, cache-read, cache-write, and optional reasoning field are shown
+**And** the UI explains that overlapping breakdown fields are not added again
 
-**Given** input tokens are available but the context-window limit is not
-**When** the indicator renders
-**Then** it shows the input count with an explicit unavailable-limit state and no percentage
+**Given** a conversation starts, loads, or resets
+**Then** session totals clear with the existing lifecycle
 
-**Given** output tokens and the provider maximum output limit are available
-**When** the last call has completed
-**Then** the UI presents a compact secondary output value with count and percentage
-**And** it does not present the output ratio as a live generation progress meter
+**And** tests cover ordering, accumulation, interrupted turns, details, omissions, reset, accessibility, and responsive behavior.
 
-**Given** usage detail metrics are available
-**When** the user opens the usage details
-**Then** the UI presents input, output, limits, cache, and reasoning values that are available
-**And** unknown values are omitted rather than shown as zero
+**FRs:** Token frontend FR-13 to FR-18
 
-**Given** the active AG-UI stream receives a `turn_usage` event
-**When** the event is processed
-**Then** the UI adds the turn's total to a session-scoped cumulative usage indicator
-**And** the cumulative is reset to zero whenever a conversation is loaded or started
-**And** it is fed exclusively by `turn_usage` totals — never by summing individual `token_usage` events
+---
 
-**And** tests cover event consumption, status thresholds, unavailable limits, multiple events per turn, turn_usage cumulative reconciliation, and conversation reset.
+### Story 10.6: Anthropic reasoning token breakdown
 
-**FRs:** Token frontend FR-1 to FR-14
+**Codebase:** `talk`
+**Dependencies:** Story 10.2 (and Story 10.4 for normalized-total regression coverage)
+
+As an operator and chat user,
+I want Anthropic thinking-token usage exposed when the provider supplies a confirmed breakdown,
+So that optional reasoning details are complete without estimates or double counting.
+
+**Acceptance Criteria:**
+
+**Given** the pinned Anthropic API/SDK contract
+**When** reasoning usage support is investigated
+**Then** the supported typed or raw documented field is identified
+**And** any required SDK upgrade receives dependency approval
+
+**Given** Anthropic supplies a confirmed thinking-token count
+**When** the response is converted
+**Then** it populates `Usage.ReasoningTokens`
+**And** propagates through per-call usage, turn aggregation, observability, `token_usage`, and `turn_usage`
+
+**Given** no confirmed count is available
+**Then** reasoning remains optional/omitted and is never estimated from thinking text or budget
+
+**And** reasoning remains included within output accounting and is never added again to `total_tokens`.
+
+**FRs:** Token backend FR-25 to FR-28

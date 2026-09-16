@@ -2,19 +2,32 @@
 
 ## Display Model
 
-The primary control is a compact horizontal progress bar with exact text. It is better suited than a circular gauge for a dense model-control area because users can compare the numerator, denominator, and status at a glance.
+The control bar presents two distinct values in this order:
 
-The output ratio is secondary because it becomes meaningful only after a response completes. It should be displayed as a compact line and included in the detailed usage view, rather than animated as generation progresses.
+1. a compact normalized `session` consumption total, when confirmed;
+2. a compact horizontal `ctx` indicator for the final LLM call of the last completed turn.
+
+The two values must not be conflated. Session total is cumulative processed volume; `ctx` is occupancy relative to the selected model's context window at one confirmed call.
+
+The compact `out` ratio is intentionally removed. In a multi-call tool turn, the final call's output ratio is neither the turn total nor necessarily the largest call, so it is easily misread. Output counts remain available in the details view.
 
 ## Event Handling
 
-The UI stores the latest confirmed usage event per active conversation. The payload represents an individual completed LLM call, not the sum of all calls in a user turn. This preserves useful information when tool execution causes multiple model calls.
+`token_usage` remains a per-call event. The UI buffers the latest valid event during the active turn but does not publish it immediately. A valid `turn_usage` is the publication boundary: it promotes the buffered final-call snapshot to the displayed `ctx` state and independently reconciles cumulative category and normalized-total values.
+
+The previous completed-turn `ctx` remains visible while the next turn runs. Complete and interrupted/iteration-limit turns behave identically. A turn without a valid buffered call does not replace prior display values with zero or estimates.
+
+## Session Total
+
+The frontend consumes backend-normalized `turn_usage.total_tokens` and sums it once per turn. It does not calculate a provider-specific total from input, output, cache, or reasoning fields. The compact session total is hidden until first confirmed and resets with the current conversation lifecycle.
+
+The details view exposes normalized total and every confirmed cumulative category. Optional reasoning tokens remain omitted when unavailable, including Anthropic responses until the backend can obtain a documented breakdown.
 
 ## Status Thresholds
 
-| Status   | Ratio                |
-| -------- | -------------------- |
-| Normal   | $r < 0.70$           |
+| Status   | Ratio                 |
+| -------- | --------------------- |
+| Normal   | $r < 0.70$            |
 | Warning  | $0.70 \leq r < 0.85$ |
 | Critical | $0.85 \leq r < 1.00$ |
-| Blocked  | $r \geq 1.00$        |
+| Blocked  | $r \geq 1.00$         |

@@ -81,6 +81,9 @@ STORY_PROJECT_OVERRIDES = {
     "10.1": "backend",
     "10.2": "backend",
     "10.3": "frontend",
+    "10.4": "backend",
+    "10.5": "frontend",
+    "10.6": "backend",
 }
 
 # Maps sprint-status.yaml status values → project option key

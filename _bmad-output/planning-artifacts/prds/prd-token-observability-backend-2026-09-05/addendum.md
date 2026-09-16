@@ -54,6 +54,35 @@ Payload (same omission rules as `token_usage`; no ratios — ratios only make se
 
 Design constraints: stream-only, zero persistence, no new HTTP endpoint. A missed `turn_usage` on a dropped stream is self-healing — the cumulative is per-session ("current consumption"), reset on conversation load and page reload. This is a deliberate UX decision.
 
+## Provider-Normalized `total_tokens`
+
+Raw usage categories are not directly additive across providers:
+
+- OpenAI-compatible APIs report cached input as a subset of prompt/input tokens and reasoning as a subset of completion/output tokens. The normalized total is therefore `input_tokens + output_tokens`.
+- Anthropic reports uncached input, cache-read input, and cache-creation input as separate categories. The normalized total is therefore `input_tokens + cache_read_tokens + cache_write_tokens + output_tokens`.
+
+Each LLM client/converter calculates `total_tokens` at the provider boundary. `domain.Usage` carries and aggregates that confirmed value without reapplying provider logic. Both custom events expose it when available:
+
+```json
+{
+  "model": "sonnet-4.6",
+  "input_tokens": 41230,
+  "output_tokens": 1352,
+  "cache_read_tokens": 10000,
+  "cache_write_tokens": 0,
+  "reasoning_tokens": 200,
+  "total_tokens": 42582
+}
+```
+
+For Anthropic, the same visible category values could yield `total_tokens: 52582` because cache-read input is separate rather than a subset. Consumers must use the supplied normalized value and must not reconstruct it.
+
+`total_tokens` is processed token volume only. It is not a cost value because token categories can have different prices.
+
+## Reasoning Token Semantics
+
+OpenAI-compatible reasoning tokens are an optional breakdown included in `output_tokens`. The current Anthropic SDK response exposes thinking content and aggregate output tokens but no typed thinking-token count. Anthropic reasoning remains omitted until a documented field is available through a supported SDK or narrowly scoped raw-response extraction. It must never be estimated, and adding the breakdown must not increase `total_tokens`.
+
 ## Model Metadata Sources
 
 Provider limits should be sourced from official model documentation or provider model-discovery APIs, then maintained as local configuration. They are not inferred from `RequestMaxOutputTokens`.
