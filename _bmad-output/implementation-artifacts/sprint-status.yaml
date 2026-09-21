@@ -117,7 +117,7 @@ development_status:
   epic-10: in-progress
   10-1-model-token-limits-and-provider-output-ceilings: done
   10-2-per-response-token-usage-in-the-ag-ui-stream: in-progress
-  10-3-last-completed-call-token-indicators: ready-for-dev
+  10-3-last-completed-call-token-indicators: done
   10-4-provider-normalized-total-token-usage: backlog
   10-5-session-total-token-consumption-indicator: backlog
   10-6-anthropic-reasoning-token-breakdown: backlog

@@ -51,3 +51,8 @@
 - Define handling for projected SRIDs, multiple geometry columns, and empty query results in the mapping workflow (`docs/labs/FSM-discovery-mapping-agent.md:119`).
 - Reconcile clustering and repeated-quartile requirements with the declared MapLibre style output contract (`docs/labs/FSM-discovery-mapping-agent.md:151`).
 - Reject unknown Anthropic thinking-effort values instead of silently mapping them to low (`talk/internal/llm/anthropic/client.go:91`).
+
+## Deferred from: code review of 10-3-last-completed-call-token-indicators.md (2026-09-16)
+
+- Stale pending snapshot can be promoted by a later turn's `turn_usage` when an earlier `turn_usage` is lost or a turn never dispatches its boundary event (`ChatUIContext.tsx:120-137`). Latent: the 10.2 contract guarantees exactly one `turn_usage` per turn, so a dropped event is the only trigger; reload self-heals.
+- Unbounded numeric extremes: `tokenCount` has no upper bound (`token-usage-schemas.ts:7`), cumulative sums can exceed `Number.MAX_SAFE_INTEGER` (`token-usage-schemas.ts:68`), and a huge finite ratio can render "Infinity%" (`token-usage-schemas.ts:154`). Theoretical — no realistic backend payload path today.

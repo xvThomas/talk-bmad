@@ -4,7 +4,7 @@ baseline_commit: c5aba9dcad63cc31f76686b6e4ae3c88f167c058
 
 # Story 10.3: Last completed-call token indicators
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -82,40 +82,61 @@ so that I can recognize a conversation approaching the selected model's capacity
   - [x] Preserve the backend field names: `model`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens`, `context_window_tokens`, `provider_max_output_tokens`, `context_ratio`, and `output_ratio`.
   - [x] Keep `turn_usage` counts-only; do not require per-call limits or ratios for reconciliation.
 
-- [ ] Task 2: Buffer per-call events and publish at the turn boundary (AC: #1, #7, #8)
+- [x] Task 2: Buffer per-call events and publish at the turn boundary (AC: #1, #7, #8)
   - [x] Extend `ChatUIProvider` state and effects to subscribe to `agent.subscribe({ onCustomEvent })` from `useAgent()`.
   - [x] Handle only validated `token_usage` and `turn_usage` events; leave all existing CopilotKit error subscription behavior intact.
-  - [ ] Store each valid `token_usage` as the pending latest-call snapshot without changing displayed usage; repeated events replace only the pending snapshot.
-  - [ ] On valid `turn_usage`, promote the pending snapshot to displayed usage, clear it, and independently add authoritative turn counts to cumulative state.
-  - [ ] Retain the previous display when `turn_usage` arrives without a valid pending snapshot.
+   - [x] Store each valid `token_usage` as the pending latest-call snapshot without changing displayed usage; repeated events replace only the pending snapshot.
+   - [x] On valid `turn_usage`, promote the pending snapshot to displayed usage, clear it, and independently add authoritative turn counts to cumulative state.
+   - [x] Retain the previous display when `turn_usage` arrives without a valid pending snapshot.
   - [x] Return the subscription cleanup from the React effect and ensure the callback cannot mutate state after the agent/conversation changes.
-  - [ ] Reset pending, displayed, and cumulative usage on the existing conversation reset signal and agent/thread identity changes. Do not clear displayed usage merely because a response is running.
+   - [x] Reset pending, displayed, and cumulative usage on the existing conversation reset signal and agent/thread identity changes. Do not clear displayed usage merely because a response is running.
 
 - [x] Task 3: Expose state through the UI context (AC: #1, #7, #9)
   - [x] Extend `chat-ui-context-types.ts` and the context value with last-call usage, cumulative usage, and any derived status/detail data needed by presentation components.
   - [x] Use stable, explicit types; do not add `any`, broad casts, or duplicate conversation state.
   - [x] Keep provider callbacks and existing context consumers backward compatible.
 
-- [ ] Task 4: Stabilize the compact context indicator and details UI (AC: #2, #3, #4, #5, #6, #9)
+- [x] Task 4: Stabilize the compact context indicator and details UI (AC: #2, #3, #4, #5, #6, #9)
   - [x] Add a focused presentation component under `src/components` (for example `TokenUsageIndicator.tsx`) rather than embedding parsing or aggregation logic in `ChatView`.
   - [x] Render it adjacent to `ModelSelector` in the existing model-controls area, preserving the current responsive layout and controls.
   - [x] Render normal/warning/critical/blocked context states with both visual styling and accessible status text.
   - [x] Render the unavailable-limit state without a percentage or progress value.
-  - [ ] Remove the compact `out` / output-ratio chip from the controls while retaining confirmed per-call output values in the details panel.
+   - [x] Remove the compact `out` / output-ratio chip from the controls while retaining confirmed per-call output values in the details panel.
   - [x] Provide an accessible details disclosure/popover using existing project primitives and semantics; do not add a UI library solely for this story.
   - [x] Ensure long counts, labels, and details remain usable at narrow viewport widths.
 
-- [ ] Task 5: Update provider and component tests for revised behavior (AC: #1-#9)
-  - [ ] Extend `src/__tests__/chat-ui-context.test.tsx` with pending replacement, end-of-turn promotion, invalid payload rejection, authoritative cumulative reconciliation, complete/interrupted turns, missing-snapshot retention, cleanup, and reset cases.
-  - [ ] Extend focused indicator/ChatView tests with placement, all four thresholds, unavailable-limit behavior, absence of compact output ratio, details omissions, accessibility text/roles, and narrow-layout-safe rendering.
-  - [ ] Assert that repeated `token_usage` events do not change the displayed indicator until one matching `turn_usage` promotes only the latest snapshot and adds cumulative counts once.
-  - [ ] Assert that reset clears pending, displayed, and cumulative state and that a stale/unsubscribed agent cannot update the new conversation.
+   - [x] Task 5: Update provider and component tests for revised behavior (AC: #1-#9)
+   - [x] Extend `src/__tests__/chat-ui-context.test.tsx` with pending replacement, end-of-turn promotion, invalid payload rejection, authoritative cumulative reconciliation, complete/interrupted turns, missing-snapshot retention, cleanup, and reset cases.
+   - [x] Extend focused indicator/ChatView tests with placement, all four thresholds, unavailable-limit behavior, absence of compact output ratio, details omissions, accessibility text/roles, and narrow-layout-safe rendering.
+   - [x] Assert that repeated `token_usage` events do not change the displayed indicator until one matching `turn_usage` promotes only the latest snapshot and adds cumulative counts once.
+   - [x] Assert that reset clears pending, displayed, and cumulative state and that a stale/unsubscribed agent cannot update the new conversation.
   - [x] Use the repository's existing Vitest and Testing Library mocks; keep tests deterministic and dependency-free.
 
-- [ ] Task 6: Validate the revised frontend behavior (AC: #9)
-  - [ ] Run the existing formatter/linter/type-check/build commands defined by `talk-ui/package.json`.
-  - [ ] Run the focused context and component tests, then the full existing frontend test suite.
+-- [x] Task 6: Validate the revised frontend behavior (AC: #9)
+   - [x] Run the existing formatter/linter/type-check/build commands defined by `talk-ui/package.json`.
+   - [x] Run the focused context and component tests, then the full existing frontend test suite.
   - [x] Do not install dependencies or alter package versions unless an existing command proves a dependency is missing.
+
+### Review Findings (2026-09-16)
+
+**decision**:
+
+- [x] [Review][Decision] Thresholds use the visible rounded percentage. Status is derived from `Math.round(context_ratio * 100) / 100`, matching the displayed percentage and `aria-valuenow` semantics. Therefore `0.6999` is warning, `0.8499` is critical, and `0.9999` is blocked.
+
+**patch**:
+
+- [x] [Review][Patch] Reset promotion window: clear `pendingCallUsageRef` synchronously in the render-phase reset block so a boundary event cannot promote a pre-reset snapshot.
+- [x] [Review][Patch] Dead code: remove the unused `OutputUsageView`/`outputUsageView` helper and its tests; the details panel derives output via `detailRows`.
+- [x] [Review][Patch] Test malformed and unknown custom events with a `turn_usage` boundary and assert that only the valid buffered value promotes.
+- [x] [Review][Patch] Strengthen running-retention coverage by promoting a displayed snapshot before setting the response to running.
+- [x] [Review][Patch] Add Escape dismissal and `aria-controls`/`aria-haspopup` to the token usage details toggle.
+- [x] [Review][Patch] Guard the custom-event callback against null/undefined event envelopes.
+- [x] [Review][Patch] Replace the nesting-coupled placement assertion with a containment relationship.
+
+**defer**:
+
+- [x] [Review][Defer] Stale pending snapshot can be promoted by a later turn's `turn_usage` when an earlier `turn_usage` is lost or a turn never dispatches its boundary event (`ChatUIContext.tsx:120-137`). Latent: the 10.2 contract guarantees exactly one `turn_usage` per turn, so a dropped event is the only trigger; reload self-heals. — deferred, pre-existing contract guarantee
+- [x] [Review][Defer] Unbounded numeric extremes: `tokenCount` has no upper bound (`token-usage-schemas.ts:7`), cumulative sums can exceed `Number.MAX_SAFE_INTEGER` (`token-usage-schemas.ts:68`), and a huge finite ratio can render "Infinity%" (`token-usage-schemas.ts:154`). Theoretical — no realistic backend payload path today. — deferred, theoretical
 
 ## Dev Notes
 
@@ -270,12 +291,23 @@ HydraFusion (implementation)
 - Ultimate context-engine analysis completed - comprehensive developer guide created.
 - AG-UI custom-event type and subscription lifecycle verified against installed `@ag-ui/client@0.0.57` / `@ag-ui/core@0.0.57` declarations.
 - Story is ready for frontend implementation; no frontend or backend source code was changed by this workflow.
-- Implemented `src/config/token-usage-schemas.ts`: Zod runtime guards for `token_usage`/`turn_usage` (non-negative integer counts, finite non-negative ratios), authoritative cumulative addition, threshold mapping (0.70 / 0.85 / 1.00), context/output view derivation and formatting helpers. Unavailable fields are omitted, never coerced to zero.
-- `ChatUIProvider` now subscribes to `agent.subscribe({ onCustomEvent })`, replaces last-call usage on each valid `token_usage`, adds only authoritative `turn_usage` totals to cumulative state, unsubscribes on cleanup and guards against stale callbacks. Usage resets on agent/thread identity change and on the empty-message conversation reset; running state never clears it. Existing CopilotKit error subscription untouched.
-- Added `TokenUsageIndicator` rendered next to `ModelSelector`: compact context chip with `data-status` hook, accessible label carrying exact counts/percentage/status, `role="progressbar"` only when a real limit and backend ratio exist, explicit limit-unavailable state without percentage, completed-call output chip, and a keyboard-accessible details panel listing only confirmed per-call and session values. Controls row now wraps on narrow layouts.
-- Tests: 28 schema tests, 15 indicator tests, 12 provider ingestion/lifecycle tests, 3 ChatView placement tests. Full suite: 249 passing, `eslint` clean, `prettier --check` clean, `tsc -b && vite build` successful.
-- No backend change, no new dependency, no estimation, persistence or cost logic introduced.
-- 2026-09-16 course correction approved: reopen implementation to buffer per-call usage until `turn_usage`, remove the compact output ratio, retain optional reasoning details, and defer normalized session total to Stories 10.4/10.5.
+- `ChatUIProvider` now buffers the latest valid `token_usage` event and promotes it only at a valid `turn_usage` boundary, while cumulative usage is reconciled exclusively from authoritative turn totals. Subscription cleanup, stale-callback guards, agent/thread reset, empty-message reset, and retention without a pending snapshot are covered; running state does not clear usage.
+- `TokenUsageIndicator` renders the compact context indicator beside `ModelSelector`, keeps output counts and backend ratios in the keyboard-accessible details panel, and removes the misleading compact output-ratio chip. Confirmed values remain omission-safe and usable at narrow widths.
+- Tests: focused usage/context/component checks passed (110 tests); full suite passed (250 tests across 21 files). `pnpm run lint`, `pnpm run format`, and `pnpm run build` passed; build emitted only the existing large-chunk warning.
+-- Implemented `src/config/token-usage-schemas.ts`: Zod runtime guards for `token_usage`/`turn_usage` (non-negative integer counts, finite non-negative ratios), authoritative cumulative addition, threshold mapping (0.70 / 0.85 / 1.00), context/output view derivation and formatting helpers. Unavailable fields are omitted, never coerced to zero.
+-- `ChatUIProvider` now subscribes to `agent.subscribe({ onCustomEvent })`, replaces last-call usage on each valid `token_usage`, adds only authoritative `turn_usage` totals to cumulative state, unsubscribes on cleanup and guards against stale callbacks. Usage resets on agent/thread identity change and on the empty-message conversation reset; running state never clears it. Existing CopilotKit error subscription untouched.
+-- Added `TokenUsageIndicator` rendered next to `ModelSelector`: compact context chip with `data-status` hook, accessible label carrying exact counts/percentage/status, `role="progressbar"` only when a real limit and backend ratio exist, explicit limit-unavailable state without percentage, completed-call output chip, and a keyboard-accessible details panel listing only confirmed per-call and session values. Controls row now wraps on narrow layouts.
+-- Tests: 28 schema tests, 15 indicator tests, 12 provider ingestion/lifecycle tests, 3 ChatView placement tests. Full suite: 249 passing, `eslint` clean, `prettier --check` clean, `tsc -b && vite build` successful.
+-- No backend change, no new dependency, no estimation, persistence or cost logic introduced.
+-- 2026-09-16 course correction approved: reopen implementation to buffer per-call usage until `turn_usage`, remove the compact output ratio, retain optional reasoning details, and defer normalized session total to Stories 10.4/10.5.
+- Implemented `src/config/token-usage-schemas.ts`: Zod runtime guards, authoritative cumulative addition, threshold mapping, context view derivation, and omission-safe formatting. Removed the deferred synthetic frontend total helper so normalized totals remain owned by Stories 10.4/10.5.
+- `ChatUIProvider` subscribes to AG-UI custom events, buffers and promotes per-call usage at turn boundaries, reconciles cumulative counts from `turn_usage`, resets on conversation scope changes, and cleans up stale subscriptions.
+- `TokenUsageIndicator` is placed beside `ModelSelector`; context status is accessible and semantic, unavailable limits do not expose progress semantics, output ratios are details-only, and confirmed ratios remain available in details.
+- Tests cover event validation, pending replacement, boundary promotion, cumulative reconciliation, retention, reset/cleanup, thresholds, accessibility, output-chip removal, and placement. Full suite: 250 passing across 21 files.
+- No backend change, no new dependency, no estimation, persistence, cost calculation, or provider-dependent total introduced.
+- 2026-09-16 course correction implemented: per-call usage is buffered until `turn_usage`, compact output ratio removed, optional reasoning details retained, and normalized session total deferred to Stories 10.4/10.5.
+- 2026-09-16: Approved course correction revised AC/tasks: stable end-of-turn context publication, no compact output ratio, optional reasoning preserved; normalized session total moved to Stories 10.4/10.5. Status review/in-progress → ready-for-dev.
+- 2026-09-16: Implemented revised buffering, boundary promotion, reset handling, details-only output usage, regression tests, and full frontend validation. Status ready-for-dev → review.
 
 ### File List
 
@@ -296,3 +328,4 @@ HydraFusion (implementation)
 
 - 2026-09-16: Implemented initial last completed-call and cumulative token indicators in the frontend (schemas, provider ingestion, context contract, indicator UI, tests). Status ready-for-dev → review.
 - 2026-09-16: Approved course correction revised AC/tasks: stable end-of-turn context publication, no compact output ratio, optional reasoning preserved; normalized session total moved to Stories 10.4/10.5. Status review/in-progress → ready-for-dev.
+- 2026-09-16: Implemented revised buffering, boundary promotion, reset handling, details-only output usage, regression tests, and full frontend validation. Status ready-for-dev → review.
