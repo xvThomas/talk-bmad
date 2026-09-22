@@ -1555,4 +1555,57 @@ So that optional reasoning details are complete without estimates or double coun
 
 **And** reasoning remains included within output accounting and is never added again to `total_tokens`.
 
-**FRs:** Token backend FR-25 to FR-28
+**FRs:** Token frontend FR-1 to FR-14
+
+---
+
+## Epic 11: LLM Provider Extensibility
+
+Add new LLM providers to the system using a clean, consistent pattern. This epic enables integrating OpenRouter (and future providers like Google Vertex AI, Amazon Bedrock) by implementing the `domain.LlmClient` interface and extending the router.
+
+### Epic 11.1: OpenRouter Provider Integration
+
+Integrate OpenRouter as a new LLM provider using the official OpenRouter Go SDK (`github.com/OpenRouterTeam/go-sdk`).
+
+**Story:** [11‑1 OpenRouter Integration](../implementation-artifacts/11-1-openrouter-integration.md) (STORY-OPENROUTER-001)
+
+**Acceptance Criteria:**
+
+**Given** the OpenRouter provider client implements `domain.LlmClient`
+**When** a request uses a model slug starting with `openrouter/`
+**Then** the router routes the request to the OpenRouter client
+**And** the client calls the OpenRouter API with correct mapping of request/response fields
+**And** token usage (`prompt_tokens`, `completion_tokens`, `reasoning_tokens`) is extracted and emitted as `turn_usage` events
+**And** streaming responses (SSE) are supported
+**And** environment variable `OPENROUTER_API_KEY` is loaded via config
+**And** unit tests using `httptest.Server` pass with ≥80% coverage
+**And** `CGO_ENABLED=0 go build ./...` succeeds
+
+**FRs:** N/A (new capability)
+
+### Epic 11.2: Provider‑Neutral Token Usage Reporting
+
+Extend token usage reporting to capture provider‑specific metrics (e.g., reasoning tokens) without breaking existing providers.
+
+**Acceptance Criteria:**
+
+**Given** a provider returns `reasoning_tokens` (or similar extra metrics)
+**When** the system emits `turn_usage` events
+**Then** the extra metrics are included (if domain model supports them) or aggregated into existing fields
+**And** no breaking changes to `domain.LlmClient` interface
+**And** existing providers (OpenAI, Anthropic) continue to work unchanged
+
+**FRs:** N/A (internal extension)
+
+### Epic 11.3: Dynamic Model Registry (Future)
+
+Fetch available models from provider APIs (`/models`) and update the registry periodically.
+
+**Acceptance Criteria:**
+
+**Given** a provider supports model listing
+**When** the system starts
+**Then** it fetches the model list and updates the internal registry
+**And** model aliases are resolvable without restart
+
+**FRs:** N/A (future enhancement)

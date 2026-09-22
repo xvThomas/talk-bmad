@@ -47,6 +47,7 @@ PROJECTS = {
             "3": "b4cd44b4",
             "8": "616b70e8",
             "10": "35df6b53",
+            "11": None,
         },
         "epic_range": range(1, 4),
     },
@@ -84,6 +85,7 @@ STORY_PROJECT_OVERRIDES = {
     "10.4": "backend",
     "10.5": "frontend",
     "10.6": "backend",
+    "11.1": "backend",
 }
 
 # Maps sprint-status.yaml status values → project option key

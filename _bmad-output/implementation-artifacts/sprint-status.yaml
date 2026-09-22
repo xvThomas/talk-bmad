@@ -42,7 +42,7 @@
 #   composition"). Key below follows the file on disk (ground truth), not the epics.md title.
 
 generated: 2026-07-30
-last_updated: 2026-09-16
+last_updated: 2026-09-19
 project: talk-bmad
 project_key: NOKEY
 tracking_system: file-system
@@ -122,3 +122,8 @@ development_status:
   10-5-session-total-token-consumption-indicator: backlog
   10-6-anthropic-reasoning-token-breakdown: backlog
   epic-10-retrospective: optional
+
+
+  epic-11: backlog
+  11-1-openrouter-integration: completed
+  epic-11-retrospective: optional
